@@ -1,4 +1,4 @@
-# AI Ad trend monitor System (n8n POC)
+# AI Ad trend monitor System (N8N POC)
 
 ## 1. Overview
 
@@ -247,6 +247,6 @@ Centralized failure management.
 - **1 Architecture Diagram**
   - `Flowchart.png`
 - **1 Documentation File**
-  - `Ads Intelligence System – README.md`
+  - `README.md`
 
 ---
