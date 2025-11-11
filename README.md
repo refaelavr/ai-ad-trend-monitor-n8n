@@ -1,8 +1,8 @@
-# AI Ad trend monitor System (N8N POC)
+# AI Ad trend monitor System (N8N POC - WIP)
 
 ## 1. Overview
 
-This Proof of Concept (POC) demonstrates a modular, production-oriented automation system built with **n8n**.
+This Proof of Concept (Work in Progress) demonstrates a modular, production-oriented automation system built with **n8n**.
 
 The system scrapes advertising data from a target website, analyzes image content using AI services, identifies weekly trends, and generates new AI-based Guardio ads inspired by those trends.
 
