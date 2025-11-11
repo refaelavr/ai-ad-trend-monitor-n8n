@@ -1,0 +1,1203 @@
+{
+  "name": "MAIN Daily Scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -832,
+        -192
+      ],
+      "id": "40dbc0e1-d2cc-4739-abc0-fc1e5ad78b5b",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e303b736-985e-4ed2-85df-887e93526345",
+              "name": "BASE_URL",
+              "value": "https://www.ynet.co.il",
+              "type": "string"
+            },
+            {
+              "id": "8b12f610-b0e5-43db-9c3f-f8b4cfd814d8",
+              "name": "MAX_PAGES",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "c58ad728-2a9a-4362-8a62-6fb580a9d134",
+              "name": "AD_HOSTS",
+              "value": "[\"doubleclick\", \"googlesyndication\", \"taboola\", \"outbrain\", \"ad.doubleclick\", \"tpc.googlesyndication\"]",
+              "type": "array"
+            },
+            {
+              "id": "8dc65a91-75ba-4778-8b4c-7ace0ae8926c",
+              "name": "AD_SELECTORS",
+              "value": "[\".ad\", \".banner\", \"sponsor\", \"[id*='ad']\", \"[class*='sponsor']\"]",
+              "type": "array"
+            },
+            {
+              "id": "068ccb52-1b62-4722-b3e2-3b85377154c8",
+              "name": "RATE_LIMIT_SEC",
+              "value": 2,
+              "type": "number"
+            },
+            {
+              "id": "d2ab3473-a79b-4a81-a138-ba9591defa78",
+              "name": "USER_AGENT",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+              "type": "string"
+            },
+            {
+              "id": "23f42c75-1826-423f-b43d-49a6c6470b0a",
+              "name": "SPREADSHEET_ID",
+              "value": "YOUR_SPREADSHEET_ID_HERE",
+              "type": "string"
+            },
+            {
+              "id": "8c0fd963-60bf-43e6-a8b2-6f23c764933c",
+              "name": "email_from",
+              "value": "your-email@example.com",
+              "type": "string"
+            },
+            {
+              "id": "e2f7f47b-03eb-43e7-81f1-179887910579",
+              "name": "email_to",
+              "value": "your-email@example.com",
+              "type": "string"
+            },
+            {
+              "id": "eccaefa3-8209-4e44-b219-784a431c0a21",
+              "name": "RUN_TYPE",
+              "value": "daily",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -608,
+        -192
+      ],
+      "id": "7645693b-374a-4d03-8fd6-253fdf1e5768",
+      "name": "Context Params"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        960,
+        -96
+      ],
+      "id": "12ec64f5-fac3-4845-b725-84caa3e907d2",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "2EagGVZMb35GdA4z",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/2EagGVZMb35GdA4z",
+          "cachedResultName": "SUB Analyze Image"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "image_url": "={{ $('Call \\'SUB_Scrape_Ads\\'').item.json.image_url }}",
+            "run_id": "={{ $execution.id }}",
+            "run_ts": "={{ $now }}",
+            "SPREADSHEET_ID": "={{ $('Context Params').first().json.SPREADSHEET_ID }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "run_ts",
+              "displayName": "run_ts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "SPREADSHEET_ID",
+              "displayName": "SPREADSHEET_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1184,
+        -32
+      ],
+      "id": "a8ba60b0-6dfd-4ecb-a74d-c4a0f3f1006f",
+      "name": "Call 'SUB_Analyze_Image'"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c97531f2-e2ff-462a-8bbf-feb55bae1bf8",
+              "leftValue": "={{ $json.image_url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        512,
+        -192
+      ],
+      "id": "fa9a130f-751a-47b2-9e1b-e307b3c4a0fe",
+      "name": "Has New Ads?"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Context Params').first().json.email_from }}",
+        "toEmail": "={{ $('Context Params').first().json.email_to }}",
+        "subject": "Daily Workflow Completed",
+        "html": "=<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body {\n      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;\n      background-color: #f5f5f5;\n      padding: 20px;\n    }\n    .container {\n      max-width: 600px;\n      margin: 0 auto;\n      background: white;\n      border-radius: 8px;\n      box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n      overflow: hidden;\n    }\n    .header {\n      background: #16a34a;\n      color: white;\n      padding: 20px;\n      text-align: center;\n    }\n    .header h1 {\n      margin: 0;\n      font-size: 24px;\n    }\n    .content {\n      padding: 20px;\n      color: #1f2937;\n    }\n    table {\n      width: 100%;\n      border-collapse: collapse;\n      margin: 20px 0;\n    }\n    th {\n      background: #f3f4f6;\n      padding: 12px;\n      text-align: left;\n      font-weight: 600;\n      color: #374151;\n      border-bottom: 2px solid #e5e7eb;\n    }\n    td {\n      padding: 12px;\n      border-bottom: 1px solid #e5e7eb;\n      color: #1f2937;\n    }\n    .footer {\n      text-align: center;\n      padding: 20px;\n      color: #6b7280;\n      font-size: 12px;\n    }\n    .badge {\n      display: inline-block;\n      padding: 4px 12px;\n      border-radius: 12px;\n      font-size: 12px;\n      font-weight: 600;\n    }\n    .badge-success {\n      background: #dcfce7;\n      color: #166534;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Daily Workflow Completed</h1>\n    </div>\n    \n    <div class=\"content\">\n      <p><strong>The daily workflow finished successfully.</strong></p>\n      \n      <table>\n        <tr>\n          <th>Execution ID</th>\n          <td>{{ $execution.id }}</td>\n        </tr>\n        <tr>\n          <th>Run ID</th>\n          <td>{{ $('Create Run ID').first().json.run_id }}</td>\n        </tr>\n        <tr>\n          <th>Timestamp</th>\n          <td>{{ $now.toISO() }}</td>\n        </tr>\n        <tr>\n          <th>New ads found</th>\n          <td>{{ $json.newAds }}</td>\n        </tr>\n        <tr>\n          <th>Workflow Type</th>\n          <td><span class=\"badge badge-success\">{{ $workflow.name }}</span></td>\n        </tr>\n        <tr>\n          <th>Status</th>\n          <td><span class=\"badge badge-success\">SUCCESS</span></td>\n        </tr>\n      </table>\n      \n      <p style=\"text-align: center; margin-top: 24px;\">\n        <a href=\"{{ $('Create Run ID').first().json.execution_url }}\"\n           style=\"display:inline-block;\n                  background-color:#3b82f6;\n                  color:#ffffff !important;\n                  font-weight:600;\n                  text-decoration:none;\n                  padding:12px 24px;\n                  border-radius:6px;\n                  font-family:Arial,Helvetica,sans-serif;\n                  text-align:center;\">\n          View Execution in n8n\n        </a>\n      </p>\n    </div>\n    \n    <div class=\"footer\">\n      <p>This is an automated daily report from your n8n workflow system.</p>\n      <p>Daily Success Notification</p>\n    </div>\n  </div>\n</body>\n</html>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1632,
+        -240
+      ],
+      "id": "7cf01f41-10cc-4839-a1b5-86779737a125",
+      "name": "Send email",
+      "webhookId": "c8e97a9b-9438-48d5-af4f-e9dd5d4cb25e",
+      "executeOnce": true,
+      "credentials": {
+        "smtp": {
+          "id": "Q34Pkt8Iza224nM6",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate UUID\nfunction generateUUID() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nconst context = $input.first().json;\nconst runType = context.RUN_TYPE || 'daily';\nconst uuid = generateUUID().slice(0, 8);\nconst date = new Date().toISOString().split('T')[0];\nconst runId = `${runType}-${date}-${uuid}`;\n\nconst executionId = $execution.id;\nconst workflowId = $workflow.id;\nconst executionUrl = `http://localhost:5678/workflow/${workflowId}/executions/${executionId}`;\n\nconsole.log('=== New Run Initialized ===');\nconsole.log('Run ID:', runId);\nconsole.log('Execution ID:', executionId);\nconsole.log('Type:', runType);\n\nreturn {\n  json: {\n    run_id: runId,\n    execution_id: executionId,\n    execution_url: executionUrl,\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        -192
+      ],
+      "id": "e78146d2-214d-4e5c-a7b5-5c120ecd1764",
+      "name": "Create Run ID"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Context Params').item.json.SPREADSHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1911291529,
+          "mode": "list",
+          "cachedResultName": "execution_logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=1911291529"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $json.run_id }}",
+            "status": "scraping_ads",
+            "step_name": "Scrape ads",
+            "updated_at": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "run_id"
+          ],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "execution_url",
+              "displayName": "execution_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "run_type",
+              "displayName": "run_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "started_at",
+              "displayName": "started_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "completed_at",
+              "displayName": "completed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "step_name",
+              "displayName": "step_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        64,
+        -192
+      ],
+      "id": "9a2fcb45-f86e-42ac-94d8-929cfe7cb529",
+      "name": "Update Status to scraping",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Ybv4fVw4u5FLLONr",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Ybv4fVw4u5FLLONr",
+          "cachedResultName": "SUB Scrape Ads"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "RATE_LIMIT_SEC": "={{ $('Context Params').item.json.RATE_LIMIT_SEC }}",
+            "BASE_URL": "={{ $('Context Params').item.json.BASE_URL }}",
+            "MAX_PAGES": "={{ $('Context Params').item.json.MAX_PAGES }}",
+            "AD_HOSTS": "={{ $('Context Params').item.json.AD_HOSTS }}",
+            "AD_SELECTORS": "={{ $('Context Params').item.json.AD_SELECTORS }}",
+            "USER_AGENT": "={{ $('Context Params').item.json.USER_AGENT }}",
+            "SPREADSHEET_ID": "={{ $('Context Params').item.json.SPREADSHEET_ID }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "BASE_URL",
+              "displayName": "BASE_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "MAX_PAGES",
+              "displayName": "MAX_PAGES",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "AD_HOSTS",
+              "displayName": "AD_HOSTS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            },
+            {
+              "id": "AD_SELECTORS",
+              "displayName": "AD_SELECTORS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            },
+            {
+              "id": "RATE_LIMIT_SEC",
+              "displayName": "RATE_LIMIT_SEC",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "USER_AGENT",
+              "displayName": "USER_AGENT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "SPREADSHEET_ID",
+              "displayName": "SPREADSHEET_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        288,
+        -192
+      ],
+      "id": "1c0c6a94-1de7-4c60-ba1b-b29f586d203f",
+      "name": "Call 'SUB_Scrape_Ads'"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Context Params').item.json.SPREADSHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1911291529,
+          "mode": "list",
+          "cachedResultName": "execution_logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=1911291529"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $json.run_id }}",
+            "execution_id": "={{ $execution.id }}",
+            "execution_url": "={{ $json.execution_url }}",
+            "run_type": "daily",
+            "status": "new",
+            "started_at": "={{ $now.toISO() }}",
+            "updated_at": "={{ $now.toISO() }}",
+            "step_name": "Initialized"
+          },
+          "matchingColumns": [
+            "run_id"
+          ],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_url",
+              "displayName": "execution_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "run_type",
+              "displayName": "run_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "started_at",
+              "displayName": "started_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "completed_at",
+              "displayName": "completed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "step_name",
+              "displayName": "step_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -160,
+        -192
+      ],
+      "id": "8afc4076-14aa-4944-9fa8-046519930fbf",
+      "name": "Create New run_status",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Context Params').first().json.SPREADSHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1911291529,
+          "mode": "list",
+          "cachedResultName": "execution_logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=1911291529"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $('Create Run ID').first().json.run_id }}",
+            "status": "analyzing_ads",
+            "updated_at": "={{ $now.toISO() }}",
+            "step_name": "Analyzing images"
+          },
+          "matchingColumns": [
+            "run_id"
+          ],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "execution_url",
+              "displayName": "execution_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "run_type",
+              "displayName": "run_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "started_at",
+              "displayName": "started_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "completed_at",
+              "displayName": "completed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "step_name",
+              "displayName": "step_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        736,
+        -96
+      ],
+      "id": "ecf86bfe-bd5d-4756-a1d8-a077d2540106",
+      "name": "Update Status to analyzing",
+      "executeOnce": false,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Context Params').first().json.SPREADSHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1911291529,
+          "mode": "list",
+          "cachedResultName": "execution_logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=1911291529"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "updated_at": "={{ $now.toISO() }}",
+            "step_name": "Completed successfully",
+            "status": "success",
+            "run_id": "={{ $('Create Run ID').first().json.run_id }}",
+            "completed_at": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "run_id"
+          ],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "execution_url",
+              "displayName": "execution_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "run_type",
+              "displayName": "run_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "started_at",
+              "displayName": "started_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "completed_at",
+              "displayName": "completed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "step_name",
+              "displayName": "step_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1184,
+        -240
+      ],
+      "id": "7343f81f-9cb2-48fb-8e46-26f839c6c0b4",
+      "name": "Update Status to success",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const runData = $('Create Run ID').first().json;\nconst completedData = $('Update Status to success').first().json;\nconst stats = JSON.parse(completedData.stats_json || '{}');\n\n// Get all ads from SUB\nconst allAds = $('Call \\'SUB_Scrape_Ads\\'').all();\n\n// Filter out empty objects\nconst validAds = allAds.filter(item => {\n  const json = item.json;\n  // Check if object has meaningful data (not just empty {})\n  return json && Object.keys(json).length > 0 && json.image_url;\n});\n\nconst adsCount = validAds.length;\n\nconsole.log('=== Ads Count ===');\nconsole.log('Total items returned:', allAds.length);\nconsole.log('Valid ads found:', adsCount);\n\nreturn {\n  json: {\n    stats: stats,\n    runData: runData,\n    completedAt: completedData.completed_at,\n    newAds: adsCount\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        -240
+      ],
+      "id": "5cbf01f1-1036-4cf3-896e-a9c176ba6a75",
+      "name": "Prepare Email Data"
+    },
+    {
+      "parameters": {
+        "content": "## CONTEXT PARAMS REQUIRED\nContext Params (Edit Fields node)\n\nREQUIRED VARIABLES:\n- BASE_URL - Website to scrape\n- MAX_PAGES - Pages to check (default: 3)\n- AD_HOSTS - Ad server domains\n- AD_SELECTORS - CSS selectors for ads\n- SPREADSHEET_ID - Google Sheets ID\n- RATE_LIMIT_SEC - API rate limit (15s)\n- USER_AGENT - Browser user agent\n- email_from / email_to\n\nNOTE: Self-hosted n8n doesn't support \nenvironment variables, so we use Set nodes.",
+        "height": 368,
+        "width": 384,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -768,
+        -608
+      ],
+      "typeVersion": 1,
+      "id": "e98f3bc2-ac4d-4064-aced-40fc2fef06e1",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## MAIN Daily Scraper\n\nPURPOSE:\n- Scrapes Ynet ads daily at 10:00\n- Analyzes new ads with Imagga API\n- Tracks execution status in real-time\n\nSCHEDULE: Daily at 10:00 AM\nDURATION: ~2-5 minutes\nOUTPUTS: execution_logs, image_analysis sheets\n",
+        "height": 256,
+        "width": 352,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1232,
+        -592
+      ],
+      "typeVersion": 1,
+      "id": "817e61ad-fada-41af-be46-3e4db320a923",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## KNOWN LIMITATIONS\nCurrent limitations and TODOs\n\n1. STUB DATA:\n   - HTML ads are blocked by Ynet\n   - Using 3 hardcoded stub ads for POC\n   - See: SUB Scrape Ads node\n\n2. PERFORMANCE:\n   - \"Update Status to analyzing\" runs X times\n     (once per new ad found - needs optimization)\n\n3. HARDCODED:\n   - n8n URL: http://localhost:5678/\n   - Should be dynamic based on environment",
+        "height": 368,
+        "width": 384,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1248,
+        -320
+      ],
+      "typeVersion": 1,
+      "id": "f858e8b2-1a2c-431f-8d75-7dd014c960ed",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Execution Steps\n\n1. Create UUID run_id\n2. Insert to execution_logs (status: new)\n3. Update status → scraping\n4. Call SUB Scrape Ads sub-workflow\n5. Loop: For each new ad\n   - Update status → analyzing\n   - Call SUB Analyze Image\n6. Update status → completed\n7. Send success email\n\nERROR: If fails → ERROR_Global_Handler",
+        "height": 336,
+        "width": 384,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -768,
+        -32
+      ],
+      "typeVersion": 1,
+      "id": "b7b00972-fa87-4b02-9e41-6d9f94c746f8",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Email Notifications",
+        "height": 272,
+        "width": 416,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1360,
+        -320
+      ],
+      "typeVersion": 1,
+      "id": "4738973f-38ae-496f-9fd5-b1633816c332",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Context Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Params": {
+      "main": [
+        [
+          {
+            "node": "Create Run ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Update Status to success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'SUB_Analyze_Image'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'SUB_Analyze_Image'": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has New Ads?": {
+      "main": [
+        [
+          {
+            "node": "Update Status to analyzing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status to success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Run ID": {
+      "main": [
+        [
+          {
+            "node": "Create New run_status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status to scraping": {
+      "main": [
+        [
+          {
+            "node": "Call 'SUB_Scrape_Ads'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'SUB_Scrape_Ads'": {
+      "main": [
+        [
+          {
+            "node": "Has New Ads?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create New run_status": {
+      "main": [
+        [
+          {
+            "node": "Update Status to scraping",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status to analyzing": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        []
+      ]
+    },
+    "Update Status to success": {
+      "main": [
+        [
+          {
+            "node": "Prepare Email Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Email Data": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "a53bGjmYCia6srmV",
+    "timezone": "Asia/Jerusalem",
+    "executionTimeout": 600
+  },
+  "versionId": "18c25213-4e91-4c3c-8e98-27719b10bcbc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b19df818dc6d5d93143869816ee7d272a575db9ee303f5834081147be1ff09b8"
+  },
+  "id": "vL7qMChAPzwNvnqp",
+  "tags": []
+}

@@ -1,0 +1,1149 @@
+{
+  "name": "SUB Scrape Ads",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "={{ $('When Executed by Another Workflow').item.json.BASE_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "={{ $('When Executed by Another Workflow').item.json.USER_AGENT }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          },
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        208,
+        576
+      ],
+      "id": "77cfd2de-e748-497f-934f-70dbb7b4ff4a",
+      "name": "Fetch Ynet Homepage",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the HTML from previous node\nconst html = $input.all()[0].json.data;\nconst maxPages = $('When Executed by Another Workflow').first().json.MAX_PAGES;\nconst rateLimitSec = $('When Executed by Another Workflow').first().json.RATE_LIMIT_SEC;\n\n// Simple regex to find article links\n// Ynet articles typically follow pattern: /article/xxxxx\nconst articleRegex = /href=[\"']([^\"']*\\/article\\/[^\"']+)[\"']/gi;\nconst links = new Set();\n\nlet match;\nwhile ((match = articleRegex.exec(html)) !== null) {\n  let url = match[1];\n  \n  // Make absolute URL if relative\n  if (url.startsWith('/')) {\n    url = 'https://www.ynet.co.il' + url;\n  }\n  \n  // Clean up URL (remove fragments, queries)\n  url = url.split('#')[0].split('?')[0];\n  \n  links.add(url);\n  \n  // Stop if we have enough\n  if (links.size >= maxPages) break;\n}\n\n// Convert to array and add jittered delays\nconst articleList = Array.from(links).slice(0, maxPages).map((url, index) => {\n  // Add random jitter to delays (±300ms)\n  const jitter = Math.floor(Math.random() * 600) - 300;\n  const delay = rateLimitSec + jitter;\n  \n  return {\n    article_url: url,\n    delay_ms: Math.max(500, delay), // minimum 500ms\n    index: index + 1\n  };\n});\n\n// n8n requires this format\nreturn articleList.map(item => ({ json: item }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        576
+      ],
+      "id": "697608db-9380-4c77-be83-1704ed379d95",
+      "name": "Extract Article Links"
+    },
+    {
+      "parameters": {
+        "amount": "={{ $('When Executed by Another Workflow').first().json.RATE_LIMIT_SEC }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        672
+      ],
+      "id": "96772415-79b9-47d4-b756-eabaa58bfd30",
+      "name": "Rate Limit Delay",
+      "webhookId": "4cd2c021-897a-4e0b-ae87-469154c45fb2"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.article_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "={{ $('When Executed by Another Workflow').item.json.USER_AGENT }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          },
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1104,
+        672
+      ],
+      "id": "3dfadd67-f86c-49b6-a7f5-2ae1b1800975",
+      "name": "Fetch Article Page",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1500
+    },
+    {
+      "parameters": {
+        "jsCode": "// Stub data to demonstrate the pipeline when scraping is blocked/empty\n// Based on real Ynet ad patterns\n\nconst stubAds = [\n  {\n    image_url: \"https://images.pexels.com/photos/14615199/pexels-photo-14615199.jpeg?_gl=1*13dhtu6*_ga*OTAzODk4OTMyLjE3NjExMTM1ODQ.*_ga_8JE65Q40S6*czE3NjEyMTA3NjEkbzMkZzEkdDE3NjEyMTA4MjYkajU5JGwwJGgw\",\n    width: 300,\n    height: 250,\n    placement_hint: \"iframe:googlesyndication\",\n    ad_host: \"googlesyndication\",\n    page_url: \"https://www.ynet.co.il/article/stub1\"\n  },\n  {\n    image_url: \"https://fastly.picsum.photos/id/962/536/354.jpg?hmac=EkOEf3fR11Y3KOWT81hl8NkkGHAL26Wp6IzIFkDOH9g\",\n    width: 728,\n    height: 90,\n    placement_hint: \"iframe:doubleclick\",\n    ad_host: \"doubleclick\",\n    page_url: \"https://www.ynet.co.il/article/stub2\"\n  },\n  {\n    image_url: \"https://fastly.picsum.photos/id/866/536/354.jpg?hmac=tGofDTV7tl2rprappPzKFiZ9vDh5MKj39oa2D--gqhA\",\n    width: 300,\n    height: 250,\n    placement_hint: \"iframe:taboola\",\n    ad_host: \"taboola\",\n    page_url: \"https://www.ynet.co.il/article/stub2\"\n  }\n];\n\nreturn stubAds.map(ad => ({ json: ad }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        480
+      ],
+      "id": "905b266f-613d-4a99-9995-4910da5427f9",
+      "name": "Stub Ad Data"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1328,
+        384
+      ],
+      "id": "6d083fc2-4cb2-44b3-b795-421b5b45e20d",
+      "name": "Merge Real or Stub Ads"
+    },
+    {
+      "parameters": {
+        "value": "={{ $json.image_url }}",
+        "dataPropertyName": "image_hash"
+      },
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        1552,
+        384
+      ],
+      "id": "f9162b55-1c13-4cbf-9b8f-ead7b2dd9c75",
+      "name": "Generate Image Hash"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b66ef0db-c016-470e-85fe-7acbc9b945f9",
+              "name": "run_id",
+              "value": "={{ $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "1c66d324-6ab3-48d4-98b8-403d7e1c1bef",
+              "name": "run_ts",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "b9a10d88-9fd7-4146-ab7f-732aaa9a802e",
+              "name": "first_seen",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "217543bb-4782-4caa-9067-01385b91dba2",
+              "name": "last_seen",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "5f5bdf58-587b-45b0-a31e-1185d2cc5450",
+              "name": "source",
+              "value": "ynet",
+              "type": "string"
+            },
+            {
+              "id": "cdd1ef0f-8f8a-48ca-91c5-6da391c714d5",
+              "name": "run_url",
+              "value": "={{ $execution.resumeUrl }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1776,
+        384
+      ],
+      "id": "30ec6346-a331-4b01-bd5d-ec0dbbbc0749",
+      "name": "Add Run Metadata"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('When Executed by Another Workflow').first().json.SPREADSHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "ads_inventory",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {
+            "image_hash": "={{ $('Loop Images Hash').item.json.image_hash }}",
+            "image_url": "={{ $('Loop Images Hash').item.json.image_url }}",
+            "run_id": "={{ $('Loop Images Hash').item.json.run_id }}",
+            "page_url": "={{ $('Loop Images Hash').item.json.page_url }}",
+            "width": "={{ $('Loop Images Hash').item.json.width }}",
+            "height": "={{ $('Loop Images Hash').item.json.height }}",
+            "placement_hint": "={{ $('Loop Images Hash').item.json.placement_hint }}",
+            "ad_host": "={{ $('Loop Images Hash').item.json.ad_host }}",
+            "first_seen": "={{ $('Loop Images Hash').item.json.first_seen }}",
+            "last_seen": "={{ $('Loop Images Hash').item.json.last_seen }}",
+            "source": "={{ $('Loop Images Hash').item.json.source }}",
+            "run_ts": "={{ $('Loop Images Hash').item.json.run_ts }}"
+          },
+          "matchingColumns": [
+            "image_hash"
+          ],
+          "schema": [
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_hash",
+              "displayName": "image_hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "page_url",
+              "displayName": "page_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "width",
+              "displayName": "width",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "height",
+              "displayName": "height",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "placement_hint",
+              "displayName": "placement_hint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ad_host",
+              "displayName": "ad_host",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "first_seen",
+              "displayName": "first_seen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_seen",
+              "displayName": "last_seen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "run_ts",
+              "displayName": "run_ts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "exists",
+              "displayName": "exists",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "handlingExtraData": "ignoreIt"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2448,
+        480
+      ],
+      "id": "3949c98f-5c81-4635-bb10-850139bab322",
+      "name": "Save to ads_inventory",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('When Executed by Another Workflow').first().json.SPREADSHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "ads_inventory",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "image_hash": "={{ $json.image_hash }}",
+            "run_id": "={{ $json.run_id }}",
+            "last_seen": "={{ $json.last_seen }}",
+            "run_ts": "={{ $json.run_ts }}",
+            "exists": "TRUE"
+          },
+          "matchingColumns": [
+            "image_hash"
+          ],
+          "schema": [
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_hash",
+              "displayName": "image_hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "page_url",
+              "displayName": "page_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "width",
+              "displayName": "width",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "height",
+              "displayName": "height",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "placement_hint",
+              "displayName": "placement_hint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ad_host",
+              "displayName": "ad_host",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "first_seen",
+              "displayName": "first_seen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_seen",
+              "displayName": "last_seen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "run_ts",
+              "displayName": "run_ts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "exists",
+              "displayName": "exists",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2448,
+        288
+      ],
+      "id": "728a8ee8-1d11-493d-bac7-ce8a4312df1c",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        656,
+        576
+      ],
+      "id": "de79b6e4-c368-4ab1-8217-e8a7be63d89d",
+      "name": "Loop Article Links",
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.SPREADSHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "ads_inventory",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -16,
+        576
+      ],
+      "id": "a08ba683-82a0-4a9f-b719-4883292b947b",
+      "name": "Read All Existing Ads",
+      "retryOnFail": false,
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const currentAd = $input.item.json;\n// Get existing ads from the node that ran earlier\nconst existingAdsNode = $('Read All Existing Ads');\nconst existingAds = existingAdsNode ? existingAdsNode.all() : [];\n\n// Find if this ad exists\nconst existingAd = existingAds.find(item => \n  item.json && item.json.image_hash === currentAd.image_hash\n);\n\nif (existingAd) {\n  // Exists - keep original first_seen\n  return {\n    json: {\n      ...currentAd,\n      first_seen: existingAd.json.first_seen,\n      exists: true,\n      row_number: existingAd.json.row_number || null\n    }\n  };\n} else {\n  // New ad\n  return {\n    json: {\n      ...currentAd,\n      exists: false\n    }\n  };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        384
+      ],
+      "id": "3eb59718-aa42-4122-a0cf-1f9881246f6d",
+      "name": "Check Each Ad"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4094e6f3-ab4a-4137-ad5e-d0553d1c52b1",
+              "leftValue": "={{ $json.exists }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2224,
+        384
+      ],
+      "id": "14aff5c2-235d-4081-ac90-ee7f6e0efc72",
+      "name": "If Ad Exists"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2672,
+        384
+      ],
+      "id": "109efecf-af70-4578-aff3-95a40ee003f4",
+      "name": "Merge Results"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "all_images",
+              "cssSelector": "img[src]",
+              "returnValue": "attribute",
+              "attribute": "src",
+              "returnArray": true
+            },
+            {
+              "key": "all_images_class",
+              "cssSelector": "img[src]",
+              "returnValue": "attribute",
+              "attribute": "class",
+              "returnArray": true
+            },
+            {
+              "key": "all_iframes",
+              "cssSelector": "iframe[src]",
+              "returnValue": "attribute",
+              "attribute": "src",
+              "returnArray": true
+            },
+            {
+              "key": "images_in_ad_containers",
+              "cssSelector": "div[class*=\"ad\"] img, div[class*=\"banner\"] img, div[class*=\"sponsor\"] img, section[class*=\"ad\"] img, aside[class*=\"banner\"] img",
+              "returnValue": "attribute",
+              "attribute": "src",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        288
+      ],
+      "id": "f35ababc-a554-47e9-8f2a-d03bcebfb15e",
+      "name": "Extract All Images and Iframes"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst hosts = $('When Executed by Another Workflow').first().json.AD_HOSTS;\n\nconsole.log('=== FILTERING BY AD_HOSTS ===');\nconsole.log('AD_HOSTS:', hosts);\nconsole.log('Processing items:', items.length);\n\nconst allFoundAds = [];\n\nfor (const item of items) {\n  const itemData = item.json;\n  const pageUrl = itemData.article_url || 'unknown';\n  \n  console.log(`\\nPage: ${pageUrl}`);\n  console.log(`Images found: ${itemData.all_images?.length || 0}`);\n  console.log(`Iframes found: ${itemData.all_iframes?.length || 0}`);\n  \n  // Process images\n  if (itemData.all_images && Array.isArray(itemData.all_images)) {\n    for (let idx = 0; idx < itemData.all_images.length; idx++) {\n      const imgSrc = itemData.all_images[idx];\n      if (!imgSrc) continue;\n      \n      const matched = hosts.find(h => imgSrc.toLowerCase().includes(h.toLowerCase()));\n      \n      if (matched) {\n        console.log(`  ✓ Image match! ${matched} in ${imgSrc.substring(0, 60)}...`);\n        \n        const imgClass = itemData.all_images_class?.[idx] || '';\n        \n        allFoundAds.push({\n          image_url: imgSrc.startsWith('http') ? imgSrc : (imgSrc.startsWith('//') ? 'https:' + imgSrc : 'https://www.ynet.co.il' + imgSrc),\n          width: null,\n          height: null,\n          placement_hint: imgClass ? 'img:' + imgClass.split(' ')[0] : 'img-tag',\n          ad_host: matched,\n          page_url: pageUrl\n        });\n      }\n    }\n  }\n  \n  // Process iframes\n  if (itemData.all_iframes && Array.isArray(itemData.all_iframes)) {\n    for (const iframeSrc of itemData.all_iframes) {\n      if (!iframeSrc) continue;\n      \n      const matched = hosts.find(h => iframeSrc.toLowerCase().includes(h.toLowerCase()));\n      \n      if (matched) {\n        console.log(`  ✓ Iframe match! ${matched} in ${iframeSrc.substring(0, 60)}...`);\n        \n        allFoundAds.push({\n          image_url: iframeSrc.startsWith('http') ? iframeSrc : (iframeSrc.startsWith('//') ? 'https:' + iframeSrc : iframeSrc),\n          width: null,\n          height: null,\n          placement_hint: 'iframe:' + matched,\n          ad_host: matched,\n          page_url: pageUrl\n        });\n      }\n    }\n  }\n}\n\nconsole.log('\\n=== RESULTS ===');\nconsole.log('Total ads found:', allFoundAds.length);\n\nreturn allFoundAds.map(ad => ({ json: ad }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        288
+      ],
+      "id": "e8f6d0f1-d29f-464c-b9e6-1153a324a1cf",
+      "name": "Filter by AD_HOSTS"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "BASE_URL"
+            },
+            {
+              "name": "MAX_PAGES",
+              "type": "number"
+            },
+            {
+              "name": "AD_HOSTS",
+              "type": "array"
+            },
+            {
+              "name": "AD_SELECTORS",
+              "type": "array"
+            },
+            {
+              "name": "RATE_LIMIT_SEC",
+              "type": "number"
+            },
+            {
+              "name": "USER_AGENT"
+            },
+            {
+              "name": "SPREADSHEET_ID"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -240,
+        576
+      ],
+      "id": "3486e11a-32ff-4046-a260-c29c5a7fc8ab",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// Filter only new ads (exists: false)\nconst newAds = items.filter(item => item.json.exists === false);\n\nconsole.log('Total ads processed:', items.length);\nconsole.log('New ads (to be analyzed):', newAds.length);\nconsole.log('Updated ads (skip analysis):', items.length - newAds.length);\n\n// Return only new ads for analysis\nreturn newAds;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2896,
+        384
+      ],
+      "id": "32ea325d-f7b5-47d7-b3a5-73d513cb609e",
+      "name": "Output Data",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e68e631e-8873-4dcb-a2f8-69df91d05bfd",
+              "name": "article_url",
+              "value": "={{ $('Loop Article Links').item.json.article_url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1328,
+        752
+      ],
+      "id": "8e2c4d63-6187-4de6-bf6b-6e88bedfc496",
+      "name": "Add article URL"
+    },
+    {
+      "parameters": {
+        "content": "## SUB-WORKFLOW: Scrape Ynet Ads\n\nINPUT:\n- BASE_URL from caller\n- MAX_PAGES from caller\n- AD_HOSTS, AD_SELECTORS\n- RATE_LIMIT_SEC\n- USER_AGENT\n- SPREADSHEET_ID\n\nOUTPUT:\n- Array of ads: [{ image_url, ad_id, \n  scraped_ts, image_hash, is_new }]\n\nCALLED BY: MAIN Daily Scraper",
+        "height": 384,
+        "width": 384,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -688,
+        -32
+      ],
+      "typeVersion": 1,
+      "id": "98bd2f76-79b5-415d-92b1-9fff3d1e0c05",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## IMPORTANT: Using Stub Data\n\nYnet blocks HTML scraping of ads.\n\nSOLUTION FOR POC:\n- 3 hardcoded stub ads in \"Generate Stub Ads\"\n- Real scraping commented out\n- Production: Need legal scraping solution\n\nSTUB ADS:\n1. https://images.pexels.com/photos/14615199/pexels-photo-14615199.jpeg?_gl=1*13dhtu6*_ga*OTAzODk4OTMyLjE3NjExMTM1ODQ.*_ga_8JE65Q40S6*czE3NjEyMTA3NjEkbzMkZzEkdDE3NjEyMTA4MjYkajU5JGwwJGgw\n2. https://fastly.picsum.photos/id/962/536/354.jpg?hmac=EkOEf3fR11Y3KOWT81hl8NkkGHAL26Wp6IzIFkDOH9g\n3. https://fastly.picsum.photos/id/866/536/354.jpg?hmac=tGofDTV7tl2rprappPzKFiZ9vDh5MKj39oa2D--gqhA",
+        "height": 464,
+        "width": 384,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -688,
+        384
+      ],
+      "typeVersion": 1,
+      "id": "c35cb145-b52c-4198-8d20-1b97039e2e0b",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Idempotency Check\n\n\"Check Each Ad Exists\" node:\n- Calculates image_hash (MD5)\n- Queries Google Sheets\n- Marks is_new: true/false\n\nPREVENTS:\n- Duplicate analysis\n- Wasted API calls\n- Sheet bloat",
+        "height": 576,
+        "width": 640,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2176,
+        64
+      ],
+      "typeVersion": 1,
+      "id": "9420c146-c9ab-4a16-a2d0-4368e5882f24",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {
+    "Fetch Article Page": [
+      {
+        "json": {
+          "data": "\n<!DOCTYPE html>\n<!--date generated - 2025-10-22T15:47:53.968945Z-->\n<html lang='he' >\n<head>\n    <meta charset=\"UTF-8\">\n    <meta http-equiv=\"Pragma\" content=\"no-cache\"/>\n    <title>פרידה עוזיאל תקטין חזה, תוציא את הסיליקון ותסיר קעקועים: &quot;רוצה לראות את הילדה שניסיתי</title>\n        <meta name=\"description\" content=\"הכוכבת סיפרה לנו על המייקאובר הגדול שהיא מתכננת לעשות, וביררנו מאיזה קעקועים היא עומדת להיפרד, מדוע עשתה סיליקון בשפתיים בגיל 15, ולמה היא רוצה לעשות הקטנת חזה. וגם: איך זה לגור עם בן זוג, לראשונה בחייה?\"/><meta property=\"vr:marketing content\" content=\"0\"/><link rel='canonical' href='https://pplus.ynet.co.il/rechilut/article/rjeyggbcge'>\n        <meta itemprop=\"name\" content=\"פרידה עוזיאל תקטין חזה, תוציא את הסיליקון ותסיר קעקועים: &quot;רוצה לראות את הילדה שניסיתי\">\n        \n        <meta itemprop=\"description\" content=\"הכוכבת סיפרה לנו על המייקאובר הגדול שהיא מתכננת לעשות, וביררנו מאיזה קעקועים היא עומדת להיפרד, מדוע עשתה סיליקון בשפתיים בגיל 15, ולמה היא רוצה לעשות הקטנת חזה. וגם: איך זה לגור עם בן זוג, לראשונה בחייה?\">\n                <meta property=\"og:type\" content=\"article\"/>\n                <meta property=\"og:url\" content=\"https://pplus.ynet.co.il/rechilut/article/rjeyggbcge\"/>\n                <meta property=\"og:title\" content=\"פרידה עוזיאל תקטין חזה, תוציא את הסיליקון ותסיר קעקועים: &quot;רוצה לראות את הילדה שניסיתי להעלים&quot;\"/>\n                <meta property=\"og:description\" content=\"הכוכבת סיפרה לנו על המייקאובר הגדול שהיא מתכננת לעשות, וביררנו מאיזה קעקועים היא עומדת להיפרד, מדוע עשתה סיליקון בשפתיים בגיל 15, ולמה היא רוצה לעשות הקטנת חזה. וגם: איך זה לגור עם בן זוג, לראשונה בחייה?\"/>\n                <meta property=\"og:image\" content=\"https://ynet-pic1.yit.co.il/picserver6/crop_images/2025/10/22/Sk11wCTyLCll/Sk11wCTyLCll_134_318_675_380_0_large.jpg\"/>\n                <meta property=\"og:site_name\" content=\"pplus\"/>\n                <meta property=\"article:published_time\" content=\"2025-10-22T07:56:39.244485Z\"/>\n                <meta property=\"article:update_time\" content=\"2025-10-22T07:56:39.244485Z\"/>\n                <meta property=\"og:IsPay\" content=\"0\"/>\n                <meta property=\"article:content_tier\" content=\"free\"/>\n            \n                <meta name=\"twitter:card\" content=\"summary_large_image\"/>\n                <meta name=\"twitter:url\" content=\"https://pplus.ynet.co.il/rechilut/article/rjeyggbcge\"/>\n                <meta name=\"twitter:title\" content=\"פרידה עוזיאל תקטין חזה, תוציא את הסיליקון ותסיר קעקועים: &quot;רוצה לראות את הילדה שניסיתי\"/>\n                <meta name=\"twitter:description\" content=\"הכוכבת סיפרה לנו על המייקאובר הגדול שהיא מתכננת לעשות, וביררנו מאיזה קעקועים היא עומדת להיפרד, מדוע עשתה סיליקון בשפתיים בגיל 15, ולמה היא רוצה לעשות הקטנת חזה. וגם: איך זה לגור עם בן זוג, לראשונה בחייה?\"/>\n                <meta name=\"twitter:image\" content=\"https://ynet-pic1.yit.co.il/picserver6/crop_images/2025/10/22/Sk11wCTyLCll/Sk11wCTyLCll_134_318_675_380_0_large.jpg\"/>\n                \n            <meta property=\"vr:title\" content='פרידה עוזיאל תקטין חזה, תוציא את הסיליקון ותסיר קעקועים: &quot;רוצה לראות את הילדה שניסיתי להעלים&quot;'/>\n            <meta property=\"vr:image_credit\" content='צילום: באדיבות פקטורי 54'/>\n            <meta property=\"vr:published_time\" content=\"2025-10-22T07:56:39.244485Z\"/>\n            <meta property=\"vr:image\" content=\"https://ynet-pic1.yit.co.il/picserver6/crop_images/2025/10/22/Sk11wCTyLCll/Sk11wCTyLCll_134_318_675_380_0_large.jpg\"/>\n            <meta property=\"vr:author\" content='בר זגה'/>\n            <meta property=\"vr:category\" content=\"rechilutplus pp\"/>\n        <meta name=\"viewport\" content=\"width=1240\">\n                <meta name=\"application-name\" content=\"pplus\"/>\n            <meta property='channel-name' content='Ynet'/>\n            \n            <meta name='can-recommend' content=\"true\" />\n            <meta property=\"publishedPageId\" content=\"65095\">\n            <meta property=\"sub-channel-ID\" content=\"11211/11220\">\n            <meta property=\"sub-channel-name\" content=\"פנאי פלוס/רכילות+\">\n            <meta property=\"recommended content\" content=\"false\">\n<link href=\"https://ynet-pic1.yit.co.il/Common/frontend/site/prod/pplus.468fdf15e8723e7c98f7f5dacbe8fdbd.css\" rel=\"stylesheet\"/><script async src=\"https://securepubads.g.doubleclick.net/tag/js/gpt.js\"></script><link rel=\"shortcut icon\" type=\"image/x-icon\" href=\"https://pplus.ynet.co.il/images/pplus_favicon.ico\"/>\n                <script>\n                    function YitPaywallCallback() {\n                        YitPaywall.platform = 'WCM';\n                        YitPaywall.freePath = \"/rechilut/article/rjeyggbcge\";\n                        YitPaywall.premiumPath = \"/articles/premium/id/rjeyggbcge\";\n                        localStorage.setItem('wcmFreePath',YitPaywall.freePath);\n                    }\n                </script>\n                <script type=\"text/javascript\" src=\"https://ynet-pic1.yit.co.il/Common/Api/Scripts/paywall.piano-refactored-v8-prod.js\" charset=\"UTF-8\"></script><script> window.articleId = \"rjeyggbcge\"</script>\n                <script>\n                    dataLayer = [{ \n                         \n                        \n                'hostname': 'pplus.ynet.co.il',\n                'pageName': '/rechilut/article/rjeyggbcge',\n                'dcPath': '11211.PnaiPlus-11220.rechilutplus.pp',\n                'contentPageType': 'Article',\n                'userId': window.YitPaywall && YitPaywall.user && YitPaywall.user.props ? YitPaywall.user.props.userId : '',\n                'user_type': window.YitPaywall && YitPaywall.user && YitPaywall.user.props ? (YitPaywall.user.props.user_type || '').toLowerCase() : 'guest',\n                'piano_id': window.YitPaywall && YitPaywall.user && YitPaywall.user.props ? YitPaywall.user.props.piano_id : '',\n                'display': window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark_mode' : 'light_mode',\n                'channel_name': 'Ynet',\n             \n                        \n                    'articleID': 'rjeyggbcge',\n                    'authorName': 'בר זגה',\n                    'articleTags': 'האח הגדול, קעקועים, סיליקון, שפתיים, קעקוע, פרידה עוזיאל',\n                    'datePublished': '2025-10-22 10:56:39',\n                    'dateModified': '2025-10-22 10:56:39',\n                    'sponsoredContent': 'No',\n                    'wordCount': '818',\n                    'editor': 'pplus',\n                    'statistics_name': 'CentralDesk',\n                    'channelName': 'Ynet',\n                    'commentsCount': 100,\n                    'videosCount': 0,\n                    'article_class': 'regular',\n                 \n                         \n                    }];\n                </script>\n                <script>\n                    (function (w, d, s, l, i) {\n                        w[l] = w[l] || [];\n                        w[l].push({\n                            'gtm.start': new Date().getTime(), \n                            event: 'gtm.js'\n                        });\n                        var f = d.getElementsByTagName(s)[0], j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : '';\n                        j.async = true; \n                        j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;\n                        f.parentNode.insertBefore(j, f);\n                    })(window, document, 'script', 'dataLayer', 'GTM-K69K2VK');\n                </script>\n            \n            <script>\n                function _isMobile() {\n                    var isMobile = (/iphone|ipod|android|blackberry|fennec/).test\n                    (navigator.userAgent.toLowerCase());\n                    return isMobile;\n                }\n\n                var isMobile1 = _isMobile();\n            </script>\n        <script> window.defaultNativeVideoType = \"flowplayer\"</script>\n               <script>\n                var dcPath = \"11211.PnaiPlus-11220.rechilutplus.pp\"\n                var dcTags = ['האח הגדול', 'קעקועים', 'סיליקון', 'שפתיים', 'קעקוע', 'פרידה עוזיאל']\n                var dcContentID = \"rjeyggbcge\"\n                var browsi_prebid_v3 = \"\"\n                var show_inboard_v3 = \"\"\n                var show_ynet_valuad = \"\"\n                var show_blogs_ads = \"\"\n              </script>\n         <script type='text/javascript'>\n                                                      var googletag = googletag || {};\n                                                      googletag.cmd = googletag.cmd || [];\n                                                      </script><script>\n                          \n                                              if (window.innerWidth >= 767) {\n                                                {\n                                                    var gen_ban = 'ads.300x250.1';\n                                                    var general_banners_divs = gen_ban.split(' ');\n                                                    var gen_ban_size = '300x250';\n                                                    var general_banners_divs_sizes = gen_ban_size.split(' ');\n                                                }\n                                              } else if (window.innerWidth <= 767) {} \n                          \n                          var page_800 = false;\n                          var dcBgColor = 'fff';\n                          var dcGeo = '1';\n                          var ParentCategory = 'PnaiPlus';\n                          var dcCG = 'article';\n                          if (document.cookie.indexOf('dcGeoAB') != -1) dcGeo = '2';\n                          var video = '0'\n                          var dcSite = 'ynt';                                  \n                          var dcLoadAds = 1;\n                          var Dc_refresh_all = 14;\n                          var Dc_refresh_jumbo = 14;\n                          var Dc_refresh_ozen = 14;\n                          var gptVer= '';\n                          var gptCtv= '';\n                          var new_gpt = '1';\n                          var newMedia = 'True';\n                          var browsi_on_gpt = 'False';\n                          var browsi_prebid = 'False';\n                          var show_truvid_mobile = 'False';\n                          var show_truvid_desktop = 'False';\n                          var adx_interstitial_mobile = 'True';\n                          var amazon_header_bidding = 'False';\n                          \n                          \n                      </script>\n                     <script src=//totalmedia2.ynet.co.il/new_gpt/ynet/gpt_script_ynet.js></script>\n                      <script  src=//totalmedia2.ynet.co.il/gpt/gpt_templates.js></script>\n                  \n            <script type=\"application/ld+json\">\n                {\n                  \"@context\": \"http://schema.org\",\n                  \"@type\": \"NewsArticle\",\n                  \"mainEntityOfPage\": {\n                    \"@type\": \"WebPage\",\n                    \"@id\": \"https://pplus.ynet.co.il/rechilut/article/rjeyggbcge\"\n                  },\n                  \"headline\": \"פרידה עוזיאל תקטין חזה, תוציא את הסיליקון ותסיר קעקועים: \\\"רוצה לראות את הילדה שניסיתי להעלים\\\"\",\n                  \"image\": [\n    \"https://ynet-pic1.yit.co.il/picserver6/crop_images/2025/10/22/Sk11wCTyLCll/Sk11wCTyLCll_0_0_960_1280_0_large.jpg\",\n    \"https://ynet-pic1.yit.co.il/picserver6/crop_images/2025/10/22/r1w0ayUAgg/r1w0ayUAgg_0_0_720_1280_0_large.jpg\",\n    \"https://ynet-pic1.yit.co.il/picserver6/crop_images/2025/10/22/ryewCpy80ge/ryewCpy80ge_0_0_720_1280_0_large.jpg\",\n    \"https://ynet-pic1.yit.co.il/picserver6/crop_images/2025/08/10/BkgbOfI00ll/BkgbOfI00ll_0_0_1280_853_0_large.jpg\"\n],\n                  \"datePublished\": \"2025-10-22T07:56:39.244485Z\",\n                  \"dateModified\": \"2025-10-22T07:58:34.025088Z\",\n                  \"author\": {\n                    \"@type\": \"Person\",\n                    \"name\": \"בר זגה\"\n                  },\n                  \"publisher\": {\n                    \"@type\": \"Organization\",\n                    \"name\": \"pplus\",\n                    \"logo\": {\n                      \"@type\": \"ImageObject\",\n                      \"url\": \"https://www.ynet.co.il/images/pplus_logo.jpg\"\n                    }\n                  },\n                  \"description\": \"הכוכבת סיפרה לנו על המייקאובר הגדול שהיא מתכננת לעשות, וביררנו מאיזה קעקועים היא עומדת להיפרד, מדוע עשתה סיליקון בשפתיים בגיל 15, ולמה היא רוצה לעשות הקטנת חזה. וגם: איך זה לגור עם בן זוג, לראשונה בחייה?\",\n                  \"wordCount\": \"818\",\n                  \"commentCount\": \"113\",\n                  \"genre\": \"11211.PnaiPlus-11220.rechilutplus.pp\",\n                  \"isAccessibleForFree\": \"True\",\n                  \"keywords\": \"האח הגדול,קעקועים,סיליקון,שפתיים,קעקוע,פרידה עוזיאל\",\n                  \"articleBody\": \"בחודש אוגוסט האחרון, נחשפה הזוגיות החדשה של הזמרת וכוכבת \\\"האח הגדול\\\", פרידה עוזיאל. בר המזל הוא איתי, בן 30, מילואימניק קרבי שעובד בתחום הנדל\\\"ן, ולאחרונה השניים עלו שלב בקשר ועברו לגור יחד.  מגורים משותפים עם בן זוג זה לא השינוי היחיד שעוזיאל עושה בחייה - ובקרוב המראה שלה עומד לעבור מייקאובר דרסטי.  הכוכבת הצטלמה השבוע לקמפיין החדש של PUMA מקבוצת Factory 54, וסיפרה על סט הצילומים כי היא מתכננת להוציא את הסיליקון מהשפתיים, להקטין את החזה ולהוריד חלק מהקעקועים שעל גופה. ביררנו כמובן מאיזה קעקועים היא עומדת להיפרד ולמה, מדוע עשתה סיליקון בשפתיים בגיל 15, ואיך זה לגור עם בן זוג, לראשונה בחייה.   \\\"זה צעד משמעותי מאוד בחיים, לא גרתי עם בן זוג אף פעם\\\", אומרת עוזיאל. \\\"אנחנו גרים ביחד כבר קרוב לחודשיים, וזה מהמם. בהתחלה יש קשיים, לעבור דירה זה לא פשוט, ולגור ביחד עם עוד בן אדם, אחרי ששנינו רגילים לגור לבד במשך שנים, זה גם לא פשוט. יש הרבה אתגרים, אבל זה המבחן וברוך השם, טפו חמסה, כל החמסות\\\". כשעוברים לגור עם מישהו, מגלים עליו דברים חדשים. מה הוא גילה עליך? \\\"וואו, אני הרגל מגונה מהלך. ההבדל ביני לבינו, זה שלי אין בעיה שדברים יעמדו רגע, ולטפל בהם בהמשך. אני לא אוהבת בלאגן, אבל אין לי בעיה שיהיה קצת לרגע, ואז אני אאפס\\\". וכשהוא איננו ואת לבד בבית, זה מרגיש אחרת? מה קורה אם יש ג'וק? \\\"ג'וק? מה אכפת לי מג'וק? אני מגיל 18 גרה לבד. היו לי ג'וקים ששילמו איתי שכירות! אתה יודע באיזה דירות גרתי? לא היו לי חלונות, אז ג'וק יפחיד אותי?\\\"   מה התוכניות שלך לשנה החדשה? \\\"אני מתכננת להסיר חלק מהקעקועים, אני עוברת הקטנת חזה והולכת להוציא את הסיליקון מהשפתיים. אלה שינויים שאני מתבשלת איתם כבר הרבה זמן\\\".  איזה קעקועים את מתכוונת להסיר? \\\"אני אוהבת מאוד את הקעקועים שלי, אבל יש לי כמה עם משמעות מאוד קשה. קעקוע של 'רק אלוהים יכול לאהוב אותי', ולא, הנה, עובדה, החיים יפים. כולם יכולים לאהוב אותי. זה לא משרת אותי יותר, ואני לא רוצה דברים כאלה על הגוף שלי\\\". את זוכרת למה עשית אותו? \\\"הייתי ילדה בת 17, הסתובבתי בסנטר, מרגישה שהעולם נגדי, ושיש לי רק את עצמי ואת אלוהים ואף אחד אחר, ובחיים לא יאהבו אותי. אז נכנסתי לחנות בסנטר, ואמרתי לו תקעקע לי - only God can love me, אני כזאת בודדה. ואני לא, אני לא אותה ילדה בת 17. \\\"חשבתי שבחיים לא אתחרט עליו, ואני גם לא מתחרטת, זו לא חרטה. אני מרגישה שזה פשוט לא משרת אותי יותר, ואיזה כיף שאפשר להסיר. אני אסיר את הקעקועים עם משמעות אנרגטית קשה. יש לי קעקוע שכתוב בו 'אהבה' עם גדר תיל. דברים קשים. זה לא אני, לא בהלימה עם מה שאני מרגישה, ותודה לשם, החיים מדהימים\\\". ולמה להוציא את הסיליקון בשפתיים? \\\"זה לא בריא. היום עושים חומצה. עשיתי בגיל 15, ועוד יומיים אני בת 27. זה מזדקן לא יפה, זה לא בריא. לא רוצה\\\". מה גורם לילדה בת 15 ללכת ולעשות סיליקון בשפתיים? \\\"הייתי ילדה משוגעת, ונשאר בי אותו שיגעון. אני לא מפחדת משינויים, אני מחליטה על החיים שלי. אני מרגישה שדווקא בשנה האחרונה, עם ההתבשלות והחשיפה שלי, אני מאוד בחוץ ובטח במוזיקה שזה כל הקישקה בחוץ, ואני מרגישה שאין צורך יותר במסכות. זה לא הרגיש כמו מסכה, אבל היום במבט לאחור, זה כבר לא משרת אותי\\\". חשבת איך תראי אחרי השינויים? \\\"כן. אני לא מפחדת, כי אני לא אחת שמפחדת או מתחרטת. הנה, גם על הקעקוע אני לא מתחרטת, הכול הפיך. יש מצב שזה יהיה לי כזה קצת שונה, כי אני רגילה לשפתיים הבשרניות שלי, אבל מעניין לראות\\\". את חושבת שתהיה איזושהי ביקורת, שישאלו 'מה פתאום היא משנה?' \\\"יכול מאוד להיות. כולם אומרים לי, 'אל תעשי, הכול עובד לך'. אבל אני חייבת להיות כנה עם הרצונות והצרכים שלי. אני אמנם מסתכלת במראה ואוהבת מה שאני רואה, תודה לאל, אבל אני מרגישה שבא לי לחזור לטבע שלי. אני לא יודעת אם טבע זאת המילה המדויקת, אבל כן, ויש מצב שאקבל ביקורת מאוד חריפה. אבל בא לי לראות את הילדה הקטנה שממש ניסיתי להעלים מאז גיל 15\\\".   למה ניסית להעלים אותה? \\\"הייתה לי ילדות מורכבת. לקחתי פיקוד על החיים שלי בגיל מאוד צעיר, ובגיל 15 הייתי בטוחה שזה איזה שינוי אופנתי ושאני פאשניסטה. היום ממרום גילי, אני יודעת שזה נבע מאיזשהו צורך להיראות יותר מהגיל שלי, כי באמת התבגרתי בגיל מאוד צעיר. בגיל 18 כבר גרתי מחוץ לבית, אז זה כנראה נבע מזה, מאיזשהו צורך להיות בוגרת. 'תראו, אני גדולה, תתייחסו אליי כמו גדולה'. עכשיו כשאני גדולה, אני אומרת 'תתייחסו אליי כמו ילדה פליז'. לא רוצה לשלם, אין לי כוח לחשבון חשמל\\\". והקטנת חזה, מאיפה זה הגיע? \\\"האמת היא שזה משהו שאני חושבת עליו כבר כמה שנים, וכשהתחלתי להופיע הבנתי שזה כבד לי. זה לא פשוט, זה כואב. נשים יבינו את אותי - חם, כאבי גב\\\". אז הולכים לפגוש פרידה חדשה? \\\"לא ממש, לא נראה לי. אני לא יודעת מה הולך לצאת, אבל אני חושבת שיכולתי להסתיר את זה בקלות, בעזרת תוחם שפתיים, ועכשיו חורף, אז אני יכולה לשים קפוצ'ונים. אבל דווקא היום, שזה לא סקסי לשתף כאלה דברים וצריך למכור שהכול מושלם, אני כן בוחרת לשתף מה אני מרגישה ומאיפה זה נובע\\\".   \",\n                  \"video\": []\n                  \n                }\n            </script>\n        \n        <script type=\"application/ld+json\">\n            {\n    \"url\": \"https://pplus.ynet.co.il/rechilut/article/rjeyggbcge\",\n    \"@context\": \"http://schema.org\",\n    \"name\": \"פרידה עוזיאל תקטין חזה, תוציא את הסיליקון ותסיר קעקועים: &quot;רוצה לראות את הילדה שניסיתי\",\n    \"breadcrumb\": {\n        \"itemListElement\": [\n            {\n                \"@type\": \"ListItem\",\n                \"position\": 1,\n                \"item\": {\n                    \"@type\": \"WebSite\",\n                    \"@id\": \"https://pplus.ynet.co.il/homepage\",\n                    \"name\": \"פנאי פלוס\"\n                }\n            },\n            {\n                \"@type\": \"ListItem\",\n                \"position\": 2,\n                \"item\": {\n                    \"@type\": \"WebSite\",\n                    \"@id\": \"https://pplus.ynet.co.il/rechilut\",\n                    \"name\": \"רכילות+\"\n                }\n            }\n        ],\n        \"@type\": \"BreadcrumbList\"\n    },\n    \"description\": \"הכוכבת סיפרה לנו על המייקאובר הגדול שהיא מתכננת לעשות, וביררנו מאיזה קעקועים היא עומדת להיפרד, מדוע עשתה סיליקון בשפתיים בגיל 15, ולמה היא רוצה לעשות הקטנת חזה. וגם: איך זה לגור עם בן זוג, לראשונה בחייה?\",\n    \"@type\": \"WebPage\"\n}\n        </script>\n                <script type=\"application/ld+json\">\n                    {\n    \"@context\": \"http://schema.org\",\n    \"logo\": \"https://www.ynet.co.il/images/pplus_logo.jpg\",\n    \"sameAs\": [\n        \"https://www.facebook.com/pnai.plus/\",\n        \"https://twitter.com/pplus_co_il\",\n        \"https://he.wikipedia.org/wiki/%D7%A4%D7%A0%D7%90%D7%99_%D7%A4%D7%9C%D7%95%D7%A1\",\n        \"https://plus.google.com/115503860459983266988\"\n    ],\n    \"name\": \"pplus\",\n    \"url\": \"https://pplus.ynet.co.il\",\n    \"@type\": \"Organization\"\n}\n                </script><script>var video_ad_iu_mobile = \"/6870/ynet/mobileweb_{device}/preroll.video/pnaiplus\";var video_analytics_src = \"ynet\";var video_ad_description_url = \"https://pplus.ynet.co.il/rechilut/article/rjeyggbcge\";var video_ad_iu = \"/6870/pplus/desktop/preroll.video/pnaiplus\";var video_ad_yncd = \"rjeyggbcge\";</script><script defer type=\"text/javascript\" src=\"https://ynet-pic1.yit.co.il/Common/frontend/site/prod/vendors-widgets.517f9e40f1da85aafc4b.js\"></script><script>var YITSiteWidgets=YITSiteWidgets||[];</script><script defer type=\"text/javascript\" src=\"https://ynet-pic1.yit.co.il/Common/frontend/site/prod/widgets.0746fc4fba8a8db9bb25.js\"></script>\n                        <script src=\"https://cdn.flowplayer.com/releases/native/3/stable/flowplayer.min.js\"></script>\r\n         <link rel=\"stylesheet\" href=\"https://cdn.flowplayer.com/releases/native/3/stable/style/flowplayer.css\" />\r\n          <script src=\"https://cdn.flowplayer.com/releases/native/3/stable/plugins/ads.min.js\"></script>\r\n         <script src=\"//cdn.flowplayer.com/releases/native/3/stable/plugins/cuepoints.min.js\"></script>\r\n         <script src=\"https://cdn.flowplayer.com/releases/native/3/stable/plugins/ga4.min.js\"></script>\r\n         <script src=\"https://cdn.flowplayer.com/releases/native/3/stable/plugins/keyboard.min.js\"></script>\r\n         <script src=\"https://cdn.flowplayer.com/releases/native/3/stable/plugins/share.min.js\"></script>\r\n         <script src=\"https://cdn.flowplayer.com/releases/native/3/stable/plugins/qsel.min.js\"></script>\r\n          <script src=\"https://cdn.flowplayer.com/releases/native/3/stable/plugins/asel.min.js\"></script>\r\n          <script src=\"https://cdn.flowplayer.com/releases/native/3/stable/plugins/hls.min.js\"></script>\r\n          <script src=\"https://cdn.flowplayer.com/releases/native/3/stable/plugins/float-on-scroll.min.js\"></script>\r\n\t\t  <script>window.isGa4=1</script>\r\n<script src=\"https://cdn.flowplayer.com/releases/native/3/stable/plugins/dash.min.js\"></script>\n                        <script type=\"text/javascript\" src=\"https://imasdk.googleapis.com/js/sdkloader/ima3.js\"></script>\n                        <script src=\"https://cdn.flowplayer.com/releases/native/translations/flowplayer.lang.he.js\"></script> \n                    \n<!--wcm pixel 11026 -->\n<style>\n    .flowplayer .fp-title {\n        display: none !important;\n    }\n</style>\n<!--wcm pixel 4970 -->\n<script type='text/javascript'>\nwindow._taboola = window._taboola || [];\n_taboola.push({article:'auto', tracking: 'utm_source=Taboola_internal&utm_medium=organic'});\n!function (e, f, u) {\ne.async = 1;\ne.src = u;\nf.parentNode.insertBefore(e, f);\n}(document.createElement('script'),\ndocument.getElementsByTagName('script')[0],\n'//cdn.taboola.com/libtrc/ynet-pplus/loader.js');\n</script>\n\n\n<!--wcm pixel 4969 -->\n<script>\n(function () {\n    if (dataLayer.length && dataLayer[0].contentPageType == \"Ynet+ Article\") {\n        return\n    }\n    !function (n, e, o, r, i) {\n        if (!e) {\n            e = e || {}, window.permutive = e, e.q = [], e.config = i || {}, e.config.projectId = o,\n                e.config.apiKey = r, e.config.environment = e.config.environment || \"production\"; for (var t = [\"addon\", \"identify\",\n                    \"track\", \"trigger\", \"query\", \"segment\", \"segments\", \"ready\", \"on\", \"once\", \"user\", \"consent\"], c = 0; c < t.length; c++) {\n                var f = t[c]; e[f] = function (n) {\n                    return function () {\n                        var o = Array.prototype.slice.call(arguments, 0); e.q.push({\n                            functionName: n, arguments: o\n                        })\n                    }\n                }(f)\n            }\n        }\n    }(document, window.permutive, \"fe68d1f7-c9f4-45b3-8905-7cda73d3fd74\",\n        \"d05706a6-4182-4194-bde3-242581f05ac3\", {});\n    window.googletag = window.googletag || {}, window.googletag.cmd = window.googletag.cmd || [],\n        window.googletag.cmd.push(function () {\n            if (0 === window.googletag.pubads().getTargeting(\"permutive\").length) {\n                var g = window.localStorage.getItem(\"_pdfps\"); window.googletag.pubads().setTargeting(\"permutive\",\n                    g ? JSON.parse(g) : [])\n            }\n        });\n    window.addEventListener(\"DOMContentLoaded\", function () {\n        function getDateTime(timeStr) {\n            try {\n                var dateTime = timeStr.split(',');\n                var date = dateTime[1].split('.');\n                var d = new Date(dateTime[0] + [date[1], date[0], date[2]].join('.'));\n                var tzOffset = (new Date()).getTimezoneOffset() * 60 * 1000;\n                return new Date(d.getTime() - tzOffset).toISOString();\n            } catch (e) {\n                return null\n            }\n        }\n        permutive.addon(\"web\", {\n            page: {\n                publisher: \"yediot\",\n                category: (function () {\n                    try {\n                        return dcPath;\n                    } catch (e) {\n                        return null;\n                    }\n                })(),\n                description: (function () {\n                    try {\n                        return JSON.parse(document.querySelectorAll('script[type=\"application/ld+json\"]')[0].text).description;\n                    } catch (e) {\n                        return null;\n                    }\n                })(),\n                dayofweek: (new Date).toLocaleDateString(\"en-us\", {\n                    weekday: \"long\"\n                }),\n                article: {\n                    publishingdate: (function () {\n                        try {\n                            const timeStr = JSON.parse(document.querySelectorAll('script[type=\"application/ld+json\"]')[0].text).datePublished;\n                            return getDateTime(timeStr)\n                        } catch (e) {\n                            return null;\n                        }\n                    })(),\n                    author: function () {\n                        try {\n                            return JSON.parse(document.querySelectorAll('script[type=\"application/ld+json\"]')[0].text).author.name;\n                        } catch (t) {\n                            return null;\n                        }\n                    }(),\n                    editortags: (function () {\n                        try {\n                            return JSON.parse(document.querySelectorAll('script[type=\"application/ld+json\"]')[0].text).keywords.split(',');\n                        } catch (t) {\n                            return null;\n                        }\n                    })()\n                }\n            }\n        })\n        var ptag = document.createElement('script');\n        ptag.src = \"https://cdn.permutive.com/fe68d1f7-c9f4-45b3-8905-7cda73d3fd74-web.js\";\n        var f = document.getElementsByTagName('script')[0];\n        f.parentNode.insertBefore(ptag, f);\n    });\n})();\n</script>\n\n<!--wcm pixel 9385 -->\n<script type=\"text/javascript\" src=\"https://ynet-pic1.yit.co.il/Common/Api/Scripts/jquery-3.6.3.min.js\"></script>\n<!--wcm pixel 5064 -->\n<style>\n.SiteArticleContact .contactAuthor{\ndisplay: none ! important;\n}\n</style>\n<!--wcm pixel 9686 -->\n<meta property=\"fb:app_id\" content=\"110597842342288\"/>\n\n<!--wcm pixel 10127 -->\n<script> window.fpToken = \"eyJraWQiOiJ4U2ZXU1BxMWc5S0oiLCJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJjIjoie1wiYWNsXCI6NixcImlkXCI6XCJ4U2ZXU1BxMWc5S0pcIixcImRvbWFpblwiOltcInluZXQuY28uaWxcIl19IiwiaXNzIjoiRmxvd3BsYXllciJ9.79I56Jn993GYmssWK5TM2F_eJ7JX4ts1gK7MxGZ5iAZ2-PDdSBVaDJmTBdvfuO8hgNfIukEq1tVgc7E8qkKHpA\"</script>\n<!--wcm pixel 10144 -->\n<script>\n    window.WCM_POPULARITY_LINK = \"https://stats.ynet.co.il/popularity/popularity.php\"\n</script>\n\n<!--wcm pixel 9723 -->\n<link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"/Common/images/pplus_favicon_32x32.png\">\n<link rel=\"icon\" type=\"image/png\" sizes=\"16x16\" href=\"/Common/images/pplus_favicon_16x16.png\">\n\n<script> window.siteID = \"pplus\"</script>\n</head>\n<body   class=\"font-moses\">\n\n<!--wcm pixel 4963 -->\n<script type=\"text/javascript\">\nwindow._taboola = window._taboola || [];\n_taboola.push({flush: true});\n</script>\n<!--wcm pixel 5632 -->\n<script>\ndocument.addEventListener(\"DOMContentLoaded\", function (){\ndocument.querySelector(\".pplusLogo\").setAttribute(\"href\", \"https://pplus.ynet.co.il/homepage\")\n})\n</script>\n            <noscript><iframe src=\"https://www.googletagmanager.com/ns.html?id=GTM-K69K2VK\"\n            height=\"0\" width=\"0\" style=\"display:none;visibility:hidden\"></iframe></noscript>\n        \n            <script>\n                !function (t, e) {\n                    \"use strict\";\n                    var i = \"classList\", n = function (t, i) {\n                        var n = i || {};\n                        this.trigger = t, this.rate = n.rate || 500, this.el = e.getElementsByClassName(\"iframe-lightbox\")[0] || \"\", this.body = this.el ? this.el.getElementsByClassName(\"body\")[0] : \"\", this.content = this.el ? this.el.getElementsByClassName(\"content\")[0] : \"\", this.href = t.dataset.src || \"\", this.paddingBottom = t.dataset.paddingBottom || \"\", this.onOpened = n.onOpened, this.onIframeLoaded = n.onIframeLoaded, this.onLoaded = n.onLoaded, this.onCreated = n.onCreated, this.onClosed = n.onClosed, this.init()\n                    };\n                    n.prototype.init = function () {\n                        var t = this;\n                        this.el || this.create();\n                        var e = function (t, e) {\n                            var i, n, o, s;\n                            return function () {\n                                o = this, n = [].slice.call(arguments, 0), s = new Date;\n                                var a = function () {\n                                    var d = new Date - s;\n                                    d < e ? i = setTimeout(a, e - d) : (i = null, t.apply(o, n))\n                                };\n                                i || (i = setTimeout(a, e))\n                            }\n                        }(function (e) {\n                            e.preventDefault(), t.open()\n                        }, this.rate);\n                        this.trigger.addEventListener(\"click\", e)\n                    }, n.prototype.create = function () {\n                        var t = this, n = e.createElement(\"div\");\n                        this.el = e.createElement(\"div\"), this.content = e.createElement(\"div\"), this.body = e.createElement(\"div\"), this.el[i].add(\"iframe-lightbox\"), n[i].add(\"backdrop\"), this.content[i].add(\"content\"), this.body[i].add(\"body\"), this.el.appendChild(n), this.content.appendChild(this.body), this.contentHolder = e.createElement(\"div\"), this.contentHolder[i].add(\"content-holder\"), this.contentHolder.appendChild(this.content), this.el.appendChild(this.contentHolder), e.body.appendChild(this.el), n.addEventListener(\"click\", function () {\n                            t.close()\n                        });\n                        var o = function () {\n                            t.isOpen() || (t.el[i].remove(\"is-showing\"), t.body.innerHTML = \"\")\n                        };\n                        this.el.addEventListener(\"transitionend\", o, !1), this.el.addEventListener(\"webkitTransitionEnd\", o, !1), this.el.addEventListener(\"mozTransitionEnd\", o, !1), this.el.addEventListener(\"msTransitionEnd\", o, !1), this.callCallback(this.onCreated, this)\n                    }, n.prototype.loadIframe = function () {\n                        var t = this;\n                        this.iframeId = \"iframe-lightbox\" + Date.now(), this.body.innerHTML = '<iframe src=\"' + this.href + '\" name=\"' + this.iframeId + '\" id=\"' + this.iframeId + '\" onload=\"this.style.opacity=1;\" style=\"opacity:0;border:none;\" scrolling=\"no\" webkitallowfullscreen=\"true\" mozallowfullscreen=\"true\" allowfullscreen=\"true\" height=\"166\" frameborder=\"no\"></iframe>', function (n, o) {\n                            e.getElementById(n).onload = function () {\n                                this.style.opacity = 1, o[i].add(\"is-loaded\"), t.callCallback(t.onIframeLoaded, t), t.callCallback(t.onLoaded, t)\n                            }\n                        }(this.iframeId, this.body)\n                    }, n.prototype.open = function () {\n                        this.loadIframe(), this.paddingBottom ? this.content.style.paddingBottom = this.paddingBottom : this.content.removeAttribute(\"style\"), this.el[i].add(\"is-showing\"), this.el[i].add(\"is-opened\"), this.callCallback(this.onOpened, this)\n                    }, n.prototype.close = function () {\n                        this.el[i].remove(\"is-opened\"), this.body[i].remove(\"is-loaded\"), this.callCallback(this.onClosed, this)\n                    }, n.prototype.isOpen = function () {\n                        return this.el[i].contains(\"is-opened\")\n                    }, n.prototype.callCallback = function (t, e) {\n                        \"function\" == typeof t && t.bind(this)(e)\n                    }, t.IframeLightbox = n\n                }(\"undefined\" != typeof window ? window : this, document);\n            </script>\n        \n            \n            <div id='maavaron_overlay' style='top:0;left:0;position:fixed;width:100%;height:100%;display:none;\n            background:white;z-index:99999;'></div>\n            <div id=ads.interstitial style='display:none;'> \n            </div> \n        \n            <div id=ads.skyscraper style='position:fixed;top:0;right:0;'></div>\n            <script type='text/javascript'>\n                if (navigator.appName != \"Microsoft Internet Explorer\") {\n                    if (document.getElementById('ads.skyscraper')) {\n                        document.getElementById('ads.skyscraper').style.position = \"fixed\";\n                    }\n                }\n                \n            </script>\n        <div id=\"site_container\" class=\"font-moses\"><div><div class=\"hContainer pplus pplus grid1280_2 article articleContainer\"><script>window.dateFormat=\"\", window.timezone=\"Asia/Jerusalem\", window.languageCode =\"he-IL\"</script><script>\nwindow.currentPlayingYoutubePlayer = window.currentPlayingYoutubePlayer || null;\nwindow.YoutubeAPIControlller  = {\n        _queue: [],\n        _isLoaded: false,\n\n        load: function (component) {\n            // if the API is loaded just create the player\n            if (this._isLoaded) {\n                component.createPlayer()\n            } else {\n                this._queue.push(component)\n            }\n        },\n\n        loadAPI: function () {\n            // load the api\n            var tag = document.createElement('script');\n            tag.src = \"https://www.youtube.com/iframe_api\";\n            var firstScriptTag = document.getElementsByTagName('script')[0];\n            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);\n\n            var that = this;\n            window.onYouTubeIframeAPIReady = function() {\n                that._isLoaded = true\n                for (let i = that._queue.length; i--;) {\n                    that._queue[i].createPlayer()\n                }\n                that._queue = []\n            }\n        },\n    }\n    setTimeout(function(){window.YoutubeAPIControlller.loadAPI()}, 1000);\n</script><span><span id=\"ByBlxl81MI0xe\"></span><script>window.YITSiteWidgets.push(['ByBlxl81MI0xe','SiteLinkLightBoxInjector',{}]);</script></span><span><span id=\"B18lllLyz8Axe\"></span><script>window.YITSiteWidgets.push(['B18lllLyz8Axe','SiteAnalyticsInjector',{\"analyticsObject\":{\"dc_path\":\"\",\"page_title\":\"פרידה עוזיאל תקטין חזה, תוציא את הסיליקון ותסיר קעקועים: \\\"רוצה לראות את הילדה שניסיתי להעלים\\\"\",\"cid\":\"\",\"yid\":\"\",\"page_type\":\"article\",\"ad_blocker\":false,\"channel_name\":\"Ynet\",\"user_status\":0,\"article_id\":\"rjeyggbcge\",\"author_name\":\"בר זגה\",\"editor_name\":\"\",\"date_modified\":\"2025-10-22T07:56:39.244Z\",\"date_published\":\"2025-10-22T07:56:39.244Z\",\"videos_count\":0,\"sponsored_content\":false,\"word_count\":818,\"article_tags\":[\"האח הגדול\",\"פרידה עוזיאל\",\"שפתיים\",\"קעקוע\",\"קעקועים\",\"סיליקון\"],\"comments_count\":0},\"mainClassName\":\"hContainer pplus pplus grid1280_2 article articleContainer\"}]);</script></span><div style=\"width:1240px;direction:ltr;margin:0 auto\" class=\"RelativeElementsContainer site_page_root\"><div class=\"layoutContainer\" style=\"position:relative;min-height:0;padding-bottom:0;width:1240px;margin:0 auto;box-sizing:border-box\"><div tabindex=\"0\" class=\"layoutItem top-ad\" style=\"position:relative;top:0;left:0;margin-bottom:20px\"><span class=\"no-print\"><div style=\"height:100%\"><div id=\"ads.top\"></div></div></span></div></div><div class=\"layoutContainer\" style=\"position:relative;min-height:1396px;padding-bottom:141.10000000000002px;width:1240px;margin:0 auto;box-sizing:border-box\"><div tabindex=\"0\" class=\"layoutItem pplus-header\" style=\"position:absolute;top:0;left:0;height:76px;width:1240px\"><div style=\"height:\"><span><span id=\"ByvexxIkf8Ceg\"><div class=\"PplusHeader\" id=\"PplusHeader\"><a href=\"//pplus.ynet.co.il/home/0,7340,L-11211,00.html\" class=\"pplusLogo\"></a><nav class=\"linksWrapper\" role=\"navigation\" aria-label=\"Menu\"><ul><li class=\"menuItem \" id=\"Bkz00SPo4O5\"><span id=\"\">דף הבית</span></li><li class=\"menuItem \" id=\"HkriRi4Oq\"><a id=\"ByOeex8JfI0le\" href=\"https://pplus.ynet.co.il/paparazzi\" target=\"_top\">פפראצי</a></li><li class=\"menuItem \" id=\"SJjyy3E009\"><a id=\"SJKlelL1z8Rex\" href=\"https://pplus.ynet.co.il/rechilut\" target=\"_top\">רכילות+</a></li><li class=\"menuItem \" id=\"rJvbynE005\"><a id=\"ByqeexI1MURee\" href=\"https://pplus.ynet.co.il/richul\" target=\"_top\">ריחו״ל</a></li><li class=\"menuItem \" id=\"Bk00P1hEu5\"><a id=\"rkiexxI1fICeg\" href=\"https://pplus.ynet.co.il/royals\" target=\"_top\">רויאלס</a></li><li class=\"menuItem \" id=\"S1xNJ24dc\"><a id=\"Hk3exxU1GICex\" href=\"https://pplus.ynet.co.il/blihultza\" target=\"_top\">בלי חולצה</a></li><li class=\"menuItem \" id=\"S1GHJhVO5\"><a id=\"ry6ggeL1ML0ge\" href=\"https://pplus.ynet.co.il/shikveshuk\" target=\"_top\">שיק או שוק</a></li><li class=\"menuItem \" id=\"BJ781hNOc\"><a id=\"rJCxex81MLCxe\" href=\"https://pplus.ynet.co.il/flightmode\" target=\"_top\">מצב טיסה</a></li></ul></nav><div class=\"stick-left-wrapper\"><div class=\"pplusSocial\"><a href=\"//www.instagram.com/pnaiplus\" class=\"socialBtn pplus_instagram\" target=\"_blank\"></a><a href=\"//www.facebook.com/pnai.plus\" class=\"socialBtn pplus_fb\" target=\"_blank\"></a><a href=\"//www.tiktok.com/@pnai_plus\" class=\"socialBtn pplus_tiktok\" target=\"_blank\"></a></div><a href=\"//www.ynet.co.il/home/0,7340,L-8,00.html\" class=\"ynetLogo\"></a></div></div></span><script>window.YITSiteWidgets.push(['ByvexxIkf8Ceg','PplusHeaderFront',{\"menuItems\":[{\"id\":\"Bkz00SPo4O5\",\"name\":\"דף הבית\",\"link\":\"\",\"targetLink\":{\"lightBoxHeight\":700,\"linkOpenType\":\"same\",\"lightBoxWidth\":803,\"lightBoxBgColor\":\"#000000\",\"lightBoxOpacity\":70},\"catId\":\"\"},{\"id\":\"HkriRi4Oq\",\"name\":\"פפראצי\",\"link\":\"https://pplus.ynet.co.il/paparazzi\",\"targetLink\":{\"lightBoxHeight\":700,\"linkOpenType\":\"same\",\"lightBoxWidth\":803,\"lightBoxBgColor\":\"#000000\",\"lightBoxOpacity\":70},\"catId\":\"11217\"},{\"id\":\"SJjyy3E009\",\"name\":\"רכילות+\",\"link\":\"https://pplus.ynet.co.il/rechilut\",\"targetLink\":{\"lightBoxHeight\":700,\"linkOpenType\":\"same\",\"lightBoxWidth\":803,\"lightBoxBgColor\":\"#000000\",\"lightBoxOpacity\":70},\"catId\":\"11220\"},{\"id\":\"rJvbynE005\",\"name\":\"ריחו״ל\",\"link\":\"https://pplus.ynet.co.il/richul\",\"targetLink\":{\"lightBoxHeight\":700,\"linkOpenType\":\"same\",\"lightBoxWidth\":803,\"lightBoxBgColor\":\"#000000\",\"lightBoxOpacity\":70},\"catId\":\"11219\"},{\"id\":\"Bk00P1hEu5\",\"name\":\"רויאלס\",\"link\":\"https://pplus.ynet.co.il/royals\",\"targetLink\":{\"lightBoxHeight\":700,\"linkOpenType\":\"same\",\"lightBoxWidth\":803,\"lightBoxBgColor\":\"#000000\",\"lightBoxOpacity\":70},\"catId\":\"26313\"},{\"id\":\"S1xNJ24dc\",\"name\":\"בלי חולצה\",\"link\":\"https://pplus.ynet.co.il/blihultza\",\"targetLink\":{\"lightBoxHeight\":700,\"linkOpenType\":\"same\",\"lightBoxWidth\":803,\"lightBoxBgColor\":\"#000000\",\"lightBoxOpacity\":70},\"catId\":\"11316\"},{\"id\":\"S1GHJhVO5\",\"name\":\"שיק או שוק\",\"link\":\"https://pplus.ynet.co.il/shikveshuk\",\"targetLink\":{\"lightBoxHeight\":700,\"linkOpenType\":\"same\",\"lightBoxWidth\":803,\"lightBoxBgColor\":\"#000000\",\"lightBoxOpacity\":70},\"catId\":\"11221\"},{\"id\":\"BJ781hNOc\",\"name\":\"מצב טיסה\",\"link\":\"https://pplus.ynet.co.il/flightmode\",\"targetLink\":{\"lightBoxHeight\":700,\"linkOpenType\":\"same\",\"lightBoxWidth\":803,\"lightBoxBgColor\":\"#000000\",\"lightBoxOpacity\":70},\"catId\":\"30132\"}],\"categoryId\":null}]);</script></span></div></div><div tabindex=\"0\" class=\"layoutItem category-breadcrumbs-1280\" style=\"position:absolute;top:96px;left:0;height:25px;width:1240px\"><span class=\"\"><div style=\"height:\"><nav aria-label=\"Breadcrumb\" class=\"categoryBreadcrumbs\"><ul><li><a href=\"https://pplus.ynet.co.il/homepage\">פנאי פלוס</a><span class=\"arrow\"></span></li><li><a href=\"https://pplus.ynet.co.il/rechilut\">רכילות+</a><span class=\"arrow\"></span></li></ul></nav></div></span></div><div tabindex=\"0\" class=\"layoutItem banner\" style=\"position:absolute;top:141px;left:0;height:250px;width:300px\"><span class=\"no-print\"><div style=\"height:100%\"><div id=\"ads.300x250.1\" data-banner=\"ads.300x250.1, 300x250\"></div></div></span></div><div tabindex=\"0\" class=\"layoutItem app-header-image show-small-vp\" style=\"position:absolute;top:141px;left:416px;height:121px;width:740px\"><span class=\"\"></span></div><div tabindex=\"0\" class=\"layoutItem taboola-general\" style=\"position:absolute;top:421px;left:0;height:945px;width:300px\"><span class=\"no-print\"><div style=\"height:100%\"><span><span id=\"Bkkblx8kz8Clx\"><div id=\"taboola-left-rail-thumbnails-nd\"></div></span><script>window.YITSiteWidgets.push(['Bkkblx8kz8Clx','TaboolaComponenta',{\"mode\":\"thumbnails-z-nd\",\"container\":\"taboola-left-rail-thumbnails-nd\",\"placement\":\"Left Rail Thumbnails ND\",\"target_type\":\"mix\"}]);</script></span></div></span></div><div class=\"dynamicHeightItemsColumn\" style=\"position:relative;display:inline-block;vertical-align:top;top:141.10000000000002px;left:416px;width:740px\"><div tabindex=\"0\" class=\"layoutItem article-header-1280-2\" style=\"width:740px;margin-bottom:15px\"><div id=\"ArticleHeaderComponent\" class=\"ArticleHeaderComponent1280 selectableShareable for-print\" role=\"header\" aria-label=\"article header\"><div class=\"mainTitleWrapper\"><h1 class=\"mainTitle\">פרידה עוזיאל תקטין חזה, תוציא את הסיליקון ותסיר קעקועים: &quot;רוצה לראות את הילדה שניסיתי להעלים&quot;</h1></div><div class=\"subTitleWrapper\"><h2><span disabled=\"\" class=\"subTitle\" contenteditable=\"false\">הכוכבת סיפרה לנו על המייקאובר הגדול שהיא מתכננת לעשות, וביררנו מאיזה קעקועים היא עומדת להיפרד, מדוע עשתה סיליקון בשפתיים בגיל 15, ולמה היא רוצה לעשות הקטנת חזה. וגם: איך זה לגור עם בן זוג, לראשונה בחייה?</span></h2></div><div class=\"authorAndDateContainer  withAvatar \"><div class=\"authoranddate\"><a href=\"https://pplus.ynet.co.il/topics/בר_זגה\" target=\"_blank\" title=\"בר זגה\"><img class=\"authorAvatar\" src=\"https://ynet-pic1.yit.co.il/picserver5/crop_images/2021/09/23/rySUA2Y7K/rySUA2Y7K_0_0_200_200_0_medium.jpg\"/></a><div class=\"authors \" style=\"max-width:400px\"><span><a href=\"https://pplus.ynet.co.il/topics/בר_זגה\" target=\"_blank\" title=\"בר זגה\">בר זגה</a></span><span class=\"infoSeparator\">|</span><span class=\"date\"><time class=\"DateDisplay\" dateTime=\"2025-10-22T07:56:39.244Z\" data-wcmdate=\"2025-10-22T07:56:39.244Z\" data-hiddenYesterday=\"0\" data-isminute-ago=\"0\" data-wcm-is-article-date=\"1\" data-wcm-now-apply=\"0\" data-wcm-format-separator=\"0\"></time></span></div></div><span><span id=\"SyxWgl8yGLCex\"><div class=\"SiteArticleSocialShareNew1280  he\"><button class=\"addNewComment tb\" id=\"addNewComment-header\" title=\"הוספת תגובה\"><span class=\"shareIcon1280\"></span><span class=\"verticalSidebarCommentNumber\"></span><span>הוספת תגובה</span></button><button title=\"שיתוף בואטסאפ\" class=\"shareIcon1280 wa\"></button><button title=\"שיתוף בפייסבוק\" class=\"shareIcon1280 fb\"></button><button title=\"שיתוף בטוויטר\" class=\"shareIcon1280 tw\"></button><button title=\"שלחו כתבה\" class=\"shareIcon1280 mailto\"></button><div class=\"frontCopyButton-pf\"></div><button title=\"עוד\" class=\"shareIcon1280 more\"></button><div class=\"menuMore close\"><a title=\"הדפסה\">הדפסה</a><a title=\"מצאתם טעות? דווחו לנו\" href=\"//ynet.co.il/redmail?notifyMistake=rjeyggbcge\" target=\"_blank\">מצאתם טעות? דווחו לנו</a></div></div></span><script>window.YITSiteWidgets.push(['SyxWgl8yGLCex','SiteArticleSocialShareNew1280',{\"categorySubChannel\":\"Ynet\",\"author\":\"בר זגה\",\"articleId\":\"rjeyggbcge\",\"showComments\":true,\"isSpotim\":false,\"lang\":\"he-IL\",\"title\":\"פרידה עוזיאל תקטין חזה, תוציא את הסיליקון ותסיר קעקועים: \\\"רוצה לראות את הילדה שניסיתי להעלים\\\"\"}]);</script></span></div></div></div><div tabindex=\"0\" class=\"layoutItem article-tags-1280-2\" style=\"width:740px;margin-bottom:20px\"><div class=\"ArticleTagsComponent\"><div class=\"tagsLabel\"> תגיות</div><div class=\"tagWrapper\"><div class=\"tagName\"><a href=\"https://pplus.ynet.co.il/topics/האח_הגדול\" title=\"האח הגדול\">האח הגדול</a></div></div><div class=\"tagWrapper\"><div class=\"tagName\"><a href=\"https://pplus.ynet.co.il/topics/פרידה_עוזיאל\" title=\"פרידה עוזיאל\">פרידה עוזיאל</a></div></div><div class=\"tagWrapper\"><div class=\"tagName\"><a href=\"https://pplus.ynet.co.il/topics/שפתיים\" title=\"שפתיים\">שפתיים</a></div></div><div class=\"tagWrapper\"><div class=\"tagName\"><a href=\"https://pplus.ynet.co.il/topics/קעקוע\" title=\"קעקוע\">קעקוע</a></div></div><div class=\"tagWrapper\"><div class=\"tagName\"><a href=\"https://pplus.ynet.co.il/topics/קעקועים\" title=\"קעקועים\">קעקועים</a></div></div><div class=\"tagWrapper\"><div class=\"tagName\"><a href=\"https://pplus.ynet.co.il/topics/סיליקון\" title=\"סיליקון\">סיליקון</a></div></div></div></div><div tabindex=\"0\" class=\"layoutItem taboola-general-mobile show-small-vp\" style=\"height:200px;width:740px;margin-bottom:15px\"><span class=\"no-print\"></span></div><div tabindex=\"0\" class=\"layoutItem article-body\" style=\"width:740px;margin-bottom:20px\"><div id=\"ArticleBodyComponent\" class=\"ArticleBodyComponent selectableShareable for-print \"><div class=\"textEditor_container readOnly\"><div class=\"DraftEditor-root DraftEditor-alignRight\"><div class=\"DraftEditor-editorContainer\"><div class=\"public-DraftEditor-content\" contenteditable=\"false\" spellcheck=\"false\" style=\"outline:none;user-select:text;-webkit-user-select:text;white-space:pre-wrap;word-wrap:break-word\"><div data-contents=\"true\"><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"tfrc-0-0\"><div data-offset-key=\"tfrc-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"tfrc-0-0\"><span data-text=\"true\">בחודש אוגוסט האחרון, נחשפה </span></span><a id=\"B11111lxUJMICgl\" href=\"https://pplus.ynet.co.il/rechilut/article/r100urlu00gx\" target=\"_blank\"><span data-offset-key=\"tfrc-1-0\"><span data-text=\"true\">הזוגיות</span></span></a><span data-offset-key=\"tfrc-2-0\"><span data-text=\"true\"> החדשה של הזמרת וכוכבת &quot;האח הגדול&quot;, </span></span><span data-offset-key=\"tfrc-2-1\" style=\"font-weight:bold\"><span data-text=\"true\">פרידה עוזיאל</span></span><span data-offset-key=\"tfrc-2-2\"><span data-text=\"true\">. בר המזל הוא </span></span><span data-offset-key=\"tfrc-2-3\" style=\"font-weight:bold\"><span data-text=\"true\">איתי</span></span><span data-offset-key=\"tfrc-2-4\"><span data-text=\"true\">, בן 30, מילואימניק קרבי שעובד בתחום הנדל&quot;ן, ולאחרונה השניים עלו שלב בקשר ועברו לגור יחד. </span></span></div></div><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"3fjah-0-0\"><div data-offset-key=\"3fjah-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"3fjah-0-0\"><span data-text=\"true\">מגורים משותפים עם בן זוג זה לא השינוי היחיד שעוזיאל עושה בחייה - ובקרוב המראה שלה עומד לעבור מייקאובר דרסטי. </span></span></div></div><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"c9jtr-0-0\"><div data-offset-key=\"c9jtr-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"c9jtr-0-0\"><span data-text=\"true\">הכוכבת הצטלמה השבוע לקמפיין החדש של PUMA מקבוצת Factory 54, וסיפרה על סט הצילומים כי היא מתכננת להוציא את הסיליקון מהשפתיים, להקטין את החזה ולהוריד חלק מהקעקועים שעל גופה. ביררנו כמובן מאיזה קעקועים היא עומדת להיפרד ולמה, מדוע עשתה סיליקון בשפתיים בגיל 15, ואיך זה לגור עם בן זוג, לראשונה בחייה.</span></span></div></div><figure data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"2v7i4-0-0\" contenteditable=\"false\"><div class=\"ArticleImageComponenta full_wide firstImageInArticle firstImageInArticleBody\"><a class=\"gelleryOpener\" aria-label=\"open article gallery\" data-image-id=\"ArticleImageData.SkxuX11lLAel\" id=\"image_ArticleImageData.SkxuX11lLAel\"><div class=\"galleryCounterExpand\"><span class=\"numOfImg\">4</span> צפייה בגלריה </div><div class=\"expand\" aria-hidden=\"true\"></div><img id=\"ReduxEditableImage_ArticleImageData.SkxuX11lLAel\" src=\"https://ynet-pic1.yit.co.il/cdn-cgi/image/format=auto/picserver6/crop_images/2025/10/22/Sk11wCTyLCll/Sk11wCTyLCll_0_0_960_1280_0_x-large.jpg\" alt=\"פרידה עוזיאל פומה\" title=\"תקופה של שינויים. פרידה עוזיאל (צילום: באדיבות פקטורי 54) \" aria-hidden=\"false\"/></a><span class=\"mobileView\"><img id=\"ReduxEditableImage_ArticleImageData.SkxuX11lLAel\" src=\"https://ynet-pic1.yit.co.il/cdn-cgi/image/format=auto/picserver6/crop_images/2025/10/22/Sk11wCTyLCll/Sk11wCTyLCll_0_0_960_1280_0_x-large.jpg\" alt=\"פרידה עוזיאל פומה\" title=\"תקופה של שינויים. פרידה עוזיאל (צילום: באדיבות פקטורי 54) \" aria-hidden=\"false\"/></span><div class=\"ImageDetails\"><div class=\"ImageCaption\"><span disabled=\"\" class=\"\" contenteditable=\"false\">תקופה של שינויים. פרידה עוזיאל</span></div><div class=\"ImageCredit\">(<span disabled=\"\" class=\"\" contenteditable=\"false\">צילום: באדיבות פקטורי 54</span>)</div></div></div></figure><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"88dbq-0-0\"><div data-offset-key=\"88dbq-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"88dbq-0-0\"><span data-text=\"true\">&quot;זה צעד משמעותי מאוד בחיים, לא גרתי עם בן זוג אף פעם&quot;, אומרת עוזיאל. &quot;אנחנו גרים ביחד כבר קרוב לחודשיים, וזה מהמם. בהתחלה יש קשיים, לעבור דירה זה לא פשוט, ולגור ביחד עם עוד בן אדם, אחרי ששנינו רגילים לגור לבד במשך שנים, זה גם לא פשוט. יש הרבה אתגרים, אבל זה המבחן וברוך השם, טפו חמסה, כל החמסות&quot;.</span></span></div></div><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"8kshk-0-0\"><div data-offset-key=\"8kshk-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"8kshk-0-0\" style=\"font-weight:bold\"><span data-text=\"true\">כשעוברים לגור עם מישהו, מגלים עליו דברים חדשים. מה הוא גילה עליך?\n</span></span><span data-offset-key=\"8kshk-0-1\"><span data-text=\"true\">&quot;וואו, אני הרגל מגונה מהלך. ההבדל ביני לבינו, זה שלי אין בעיה שדברים יעמדו רגע, ולטפל בהם בהמשך. אני לא אוהבת בלאגן, אבל אין לי בעיה שיהיה קצת לרגע, ואז אני אאפס&quot;.</span></span></div></div><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"gojo-0-0\"><div data-offset-key=\"gojo-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"gojo-0-0\" style=\"font-weight:bold\"><span data-text=\"true\">וכשהוא איננו ואת לבד בבית, זה מרגיש אחרת? מה קורה אם יש ג&#x27;וק?\n</span></span><span data-offset-key=\"gojo-0-1\"><span data-text=\"true\">&quot;ג&#x27;וק? מה אכפת לי מג&#x27;וק? אני מגיל 18 גרה לבד. היו לי ג&#x27;וקים ששילמו איתי שכירות! אתה יודע באיזה דירות גרתי? לא היו לי חלונות, אז ג&#x27;וק יפחיד אותי?&quot;</span></span></div></div><figure data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"73bav-0-0\" contenteditable=\"false\"><div class=\"ArticleImageComponenta full_wide\"><a class=\"gelleryOpener\" aria-label=\"open article gallery\" data-image-id=\"ArticleImageData.BJln4ZeIRee\" id=\"image_ArticleImageData.BJln4ZeIRee\"><div class=\"galleryCounterExpand\"><span class=\"numOfImg\">4</span> צפייה בגלריה </div><div class=\"expand\" aria-hidden=\"true\"></div><img id=\"ReduxEditableImage_ArticleImageData.BJln4ZeIRee\" src=\"https://ynet-pic1.yit.co.il/cdn-cgi/image/format=auto/picserver6/crop_images/2025/10/22/r1w0ayUAgg/r1w0ayUAgg_0_0_720_1280_0_x-large.jpg\" alt=\"פרידה עוזיאל פומה\" title=\"&quot;הייתי ילדה משוגעת, אני לא מפחדת משינויים&quot; (צילום: באדיבות פקטורי 54) \" aria-hidden=\"false\"/></a><span class=\"mobileView\"><img id=\"ReduxEditableImage_ArticleImageData.BJln4ZeIRee\" src=\"https://ynet-pic1.yit.co.il/cdn-cgi/image/format=auto/picserver6/crop_images/2025/10/22/r1w0ayUAgg/r1w0ayUAgg_0_0_720_1280_0_x-large.jpg\" alt=\"פרידה עוזיאל פומה\" title=\"&quot;הייתי ילדה משוגעת, אני לא מפחדת משינויים&quot; (צילום: באדיבות פקטורי 54) \" aria-hidden=\"false\"/></span><div class=\"ImageDetails\"><div class=\"ImageCaption\"><span disabled=\"\" class=\"\" contenteditable=\"false\">\"הייתי ילדה משוגעת, אני לא מפחדת משינויים\"</span></div><div class=\"ImageCredit\">(<span disabled=\"\" class=\"\" contenteditable=\"false\">צילום: באדיבות פקטורי 54</span>)</div></div></div></figure><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"bc2lo-0-0\"><div data-offset-key=\"bc2lo-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"bc2lo-0-0\" style=\"font-weight:bold\"><span data-text=\"true\">מה התוכניות שלך לשנה החדשה?\n</span></span><span data-offset-key=\"bc2lo-0-1\"><span data-text=\"true\">&quot;אני מתכננת להסיר חלק מהקעקועים, אני עוברת הקטנת חזה והולכת להוציא את הסיליקון מהשפתיים. אלה שינויים שאני מתבשלת איתם כבר הרבה זמן&quot;. </span></span></div></div><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"1ge05-0-0\"><div data-offset-key=\"1ge05-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"1ge05-0-0\" style=\"font-weight:bold\"><span data-text=\"true\">איזה קעקועים את מתכוונת להסיר?\n</span></span><span data-offset-key=\"1ge05-0-1\"><span data-text=\"true\">&quot;אני אוהבת מאוד את הקעקועים שלי, אבל יש לי כמה עם משמעות מאוד קשה. קעקוע של &#x27;רק אלוהים יכול לאהוב אותי&#x27;, ולא, הנה, עובדה, החיים יפים. כולם יכולים לאהוב אותי. זה לא משרת אותי יותר, ואני לא רוצה דברים כאלה על הגוף שלי&quot;.</span></span></div></div><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"ds2p5-0-0\"><div data-offset-key=\"ds2p5-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"ds2p5-0-0\" style=\"font-weight:bold\"><span data-text=\"true\">את זוכרת למה עשית אותו?\n</span></span><span data-offset-key=\"ds2p5-0-1\"><span data-text=\"true\">&quot;הייתי ילדה בת 17, הסתובבתי בסנטר, מרגישה שהעולם נגדי, ושיש לי רק את עצמי ואת אלוהים ואף אחד אחר, ובחיים לא יאהבו אותי. אז נכנסתי לחנות בסנטר, ואמרתי לו תקעקע לי - only God can love me, אני כזאת בודדה. ואני לא, אני לא אותה ילדה בת 17.</span></span></div></div><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"nu45-0-0\"><div data-offset-key=\"nu45-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"nu45-0-0\"><span data-text=\"true\">&quot;חשבתי שבחיים לא אתחרט עליו, ואני גם לא מתחרטת, זו לא חרטה. אני מרגישה שזה פשוט לא משרת אותי יותר, ואיזה כיף שאפשר להסיר. אני אסיר את הקעקועים עם משמעות אנרגטית קשה. יש לי קעקוע שכתוב בו &#x27;אהבה&#x27; עם גדר תיל. דברים קשים. זה לא אני, לא בהלימה עם מה שאני מרגישה, ותודה לשם, החיים מדהימים&quot;.</span></span></div></div><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"8g8af-0-0\"><div data-offset-key=\"8g8af-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"8g8af-0-0\" style=\"font-weight:bold\"><span data-text=\"true\">ולמה להוציא את הסיליקון בשפתיים?\n</span></span><span data-offset-key=\"8g8af-0-1\"><span data-text=\"true\">&quot;זה לא בריא. היום עושים חומצה. עשיתי בגיל 15, ועוד יומיים אני בת 27. זה מזדקן לא יפה, זה לא בריא. לא רוצה&quot;.</span></span></div></div><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"4a5lg-0-0\"><div data-offset-key=\"4a5lg-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"4a5lg-0-0\" style=\"font-weight:bold\"><span data-text=\"true\">מה גורם לילדה בת 15 ללכת ולעשות סיליקון בשפתיים?\n</span></span><span data-offset-key=\"4a5lg-0-1\"><span data-text=\"true\">&quot;הייתי ילדה משוגעת, ונשאר בי אותו שיגעון. אני לא מפחדת משינויים, אני מחליטה על החיים שלי. אני מרגישה שדווקא בשנה האחרונה, עם ההתבשלות והחשיפה שלי, אני מאוד בחוץ ובטח במוזיקה שזה כל הקישקה בחוץ, ואני מרגישה שאין צורך יותר במסכות. זה לא הרגיש כמו מסכה, אבל היום במבט לאחור, זה כבר לא משרת אותי&quot;.</span></span></div></div><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"7gdg8-0-0\"><div data-offset-key=\"7gdg8-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"7gdg8-0-0\" style=\"font-weight:bold\"><span data-text=\"true\">חשבת איך תראי אחרי השינויים?\n</span></span><span data-offset-key=\"7gdg8-0-1\"><span data-text=\"true\">&quot;כן. אני לא מפחדת, כי אני לא אחת שמפחדת או מתחרטת. הנה, גם על הקעקוע אני לא מתחרטת, הכול הפיך. יש מצב שזה יהיה לי כזה קצת שונה, כי אני רגילה לשפתיים הבשרניות שלי, אבל מעניין לראות&quot;.</span></span></div></div><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"7fcpn-0-0\"><div data-offset-key=\"7fcpn-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"7fcpn-0-0\" style=\"font-weight:bold\"><span data-text=\"true\">את חושבת שתהיה איזושהי ביקורת, שישאלו &#x27;מה פתאום היא משנה?&#x27;\n</span></span><span data-offset-key=\"7fcpn-0-1\"><span data-text=\"true\">&quot;יכול מאוד להיות. כולם אומרים לי, &#x27;אל תעשי, הכול עובד לך&#x27;. אבל אני חייבת להיות כנה עם הרצונות והצרכים שלי. אני אמנם מסתכלת במראה ואוהבת מה שאני רואה, תודה לאל, אבל אני מרגישה שבא לי לחזור לטבע שלי. אני לא יודעת אם טבע זאת המילה המדויקת, אבל כן, ויש מצב שאקבל ביקורת מאוד חריפה. אבל בא לי לראות את הילדה הקטנה שממש ניסיתי להעלים מאז גיל 15&quot;.</span></span></div></div><figure data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"k1n6-0-0\" contenteditable=\"false\"><div class=\"ArticleImageComponenta full_wide\"><a class=\"gelleryOpener\" aria-label=\"open article gallery\" data-image-id=\"ArticleImageData.B1g4vWl80ee\" id=\"image_ArticleImageData.B1g4vWl80ee\"><div class=\"galleryCounterExpand\"><span class=\"numOfImg\">4</span> צפייה בגלריה </div><div class=\"expand\" aria-hidden=\"true\"></div><img id=\"ReduxEditableImage_ArticleImageData.B1g4vWl80ee\" src=\"https://ynet-pic1.yit.co.il/cdn-cgi/image/format=auto/picserver6/crop_images/2025/10/22/ryewCpy80ge/ryewCpy80ge_0_0_720_1280_0_x-large.jpg\" alt=\"פרידה עוזיאל פומה\" title=\"&quot;יכולתי להסתיר את זה, בחרתי לשתף&quot; (צילום: באדיבות פקטורי 54) \" aria-hidden=\"false\"/></a><span class=\"mobileView\"><img id=\"ReduxEditableImage_ArticleImageData.B1g4vWl80ee\" src=\"https://ynet-pic1.yit.co.il/cdn-cgi/image/format=auto/picserver6/crop_images/2025/10/22/ryewCpy80ge/ryewCpy80ge_0_0_720_1280_0_x-large.jpg\" alt=\"פרידה עוזיאל פומה\" title=\"&quot;יכולתי להסתיר את זה, בחרתי לשתף&quot; (צילום: באדיבות פקטורי 54) \" aria-hidden=\"false\"/></span><div class=\"ImageDetails\"><div class=\"ImageCaption\"><span disabled=\"\" class=\"\" contenteditable=\"false\">\"יכולתי להסתיר את זה, בחרתי לשתף\"</span></div><div class=\"ImageCredit\">(<span disabled=\"\" class=\"\" contenteditable=\"false\">צילום: באדיבות פקטורי 54</span>)</div></div></div></figure><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"cjvfm-0-0\"><div data-offset-key=\"cjvfm-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"cjvfm-0-0\" style=\"font-weight:bold\"><span data-text=\"true\">למה ניסית להעלים אותה?\n</span></span><span data-offset-key=\"cjvfm-0-1\"><span data-text=\"true\">&quot;הייתה לי ילדות מורכבת. לקחתי פיקוד על החיים שלי בגיל מאוד צעיר, ובגיל 15 הייתי בטוחה שזה איזה שינוי אופנתי ושאני פאשניסטה. היום ממרום גילי, אני יודעת שזה נבע מאיזשהו צורך להיראות יותר מהגיל שלי, כי באמת התבגרתי בגיל מאוד צעיר. בגיל 18 כבר גרתי מחוץ לבית, אז זה כנראה נבע מזה, מאיזשהו צורך להיות בוגרת. &#x27;תראו, אני גדולה, תתייחסו אליי כמו גדולה&#x27;. עכשיו כשאני גדולה, אני אומרת &#x27;תתייחסו אליי כמו ילדה פליז&#x27;. לא רוצה לשלם, אין לי כוח לחשבון חשמל&quot;.</span></span></div></div><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"tusm-0-0\"><div data-offset-key=\"tusm-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"tusm-0-0\" style=\"font-weight:bold\"><span data-text=\"true\">והקטנת חזה, מאיפה זה הגיע?\n</span></span><span data-offset-key=\"tusm-0-1\"><span data-text=\"true\">&quot;האמת היא שזה משהו שאני חושבת עליו כבר כמה שנים, וכשהתחלתי להופיע הבנתי שזה כבד לי. זה לא פשוט, זה כואב. נשים יבינו את אותי - חם, כאבי גב&quot;.</span></span></div></div><div class=\"text_editor_paragraph rtl\" data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"fkpf2-0-0\"><div data-offset-key=\"fkpf2-0-0\" class=\"public-DraftStyleDefault-block public-DraftStyleDefault-rtl\"><span data-offset-key=\"fkpf2-0-0\" style=\"font-weight:bold\"><span data-text=\"true\">אז הולכים לפגוש פרידה חדשה?\n</span></span><span data-offset-key=\"fkpf2-0-1\"><span data-text=\"true\">&quot;לא ממש, לא נראה לי. אני לא יודעת מה הולך לצאת, אבל אני חושבת שיכולתי להסתיר את זה בקלות, בעזרת תוחם שפתיים, ועכשיו חורף, אז אני יכולה לשים קפוצ&#x27;ונים. אבל דווקא היום, שזה לא סקסי לשתף כאלה דברים וצריך למכור שהכול מושלם, אני כן בוחרת לשתף מה אני מרגישה ומאיפה זה נובע&quot;.</span></span></div></div><figure data-block=\"true\" data-editor=\"e4ct9\" data-offset-key=\"66tvu-0-0\" contenteditable=\"false\"><div class=\"ArticleImageComponenta full_wide\"><a class=\"gelleryOpener\" aria-label=\"open article gallery\" data-image-id=\"ArticleImageData.SJlMNu11LCeg\" id=\"image_ArticleImageData.SJlMNu11LCeg\"><div class=\"galleryCounterExpand\"><span class=\"numOfImg\">4</span> צפייה בגלריה </div><div class=\"expand\" aria-hidden=\"true\"></div><img id=\"ReduxEditableImage_ArticleImageData.SJlMNu11LCeg\" src=\"https://ynet-pic1.yit.co.il/cdn-cgi/image/format=auto/picserver6/crop_images/2025/08/10/BkgbOfI00ll/BkgbOfI00ll_0_0_1280_853_0_x-large.jpg\" alt=\"פרידה עוזיאל\" title=\"פרידה עוזיאל (צילום: עמית סליקטר) \" aria-hidden=\"false\"/></a><span class=\"mobileView\"><img id=\"ReduxEditableImage_ArticleImageData.SJlMNu11LCeg\" src=\"https://ynet-pic1.yit.co.il/cdn-cgi/image/format=auto/picserver6/crop_images/2025/08/10/BkgbOfI00ll/BkgbOfI00ll_0_0_1280_853_0_x-large.jpg\" alt=\"פרידה עוזיאל\" title=\"פרידה עוזיאל (צילום: עמית סליקטר) \" aria-hidden=\"false\"/></span><div class=\"ImageDetails\"><div class=\"ImageCaption\"><span disabled=\"\" class=\"\" contenteditable=\"false\">פרידה עוזיאל</span></div><div class=\"ImageCredit\">(<span disabled=\"\" class=\"\" contenteditable=\"false\">צילום: עמית סליקטר</span>)</div></div></div></figure></div></div></div></div></div></div></div><div tabindex=\"0\" class=\"layoutItem taboola-general-mobile show-small-vp\" style=\"height:200px;width:740px;margin-bottom:15px\"><span class=\"no-print\"></span></div><div tabindex=\"0\" class=\"layoutItem connect-us-widget\" style=\"width:740px;margin-bottom:4px\"><span class=\"no-print\"><div style=\"height:100%\"><span><span id=\"r1fZgl8yML0ee\"><div class=\"SiteArticleContact\"><div></div><div class=\"foundMistake \"><a href=\"//ynet.co.il/redmail?notifyMistake=rjeyggbcge\" class=\"mistakeText\" target=\"_blank\">מצאתם טעות? כתבו לנו | המייל האדום גם בווטסאפ</a></div><div class=\"commentInfoBox\"><div class=\"toAllComments\" id=\"bottomSpotimCommentsExist\"> </div><div><div class=\"commentInfoText\">לכתבה זו לא התפרסמו תגובות, היו הראשונים להגיב</div><button class=\"addNewComment\" title=\"הוספת תגובה\"><span class=\"shareIcon1280\"></span><span>הוספת תגובה</span></button></div></div></div></span><script>window.YITSiteWidgets.push(['r1fZgl8yML0ee','SiteArticleContact',{\"articleId\":\"rjeyggbcge\",\"categorySubChannel\":11211,\"isCommertialArticle\":\"\",\"showComments\":true,\"isSpotim\":false,\"linkText\":\" מצאתם טעות? כתבו לנו | המייל האדום גם בווטסאפ                   \",\"linkUrl\":\"\",\"editorText\":\"\"}]);</script></span></div></span></div><div tabindex=\"0\" class=\"layoutItem taboola-Div\" style=\"height:37px;width:740px;margin-bottom:10px\"><span class=\"no-print\"><div style=\"height:100%\"><span><span id=\"rJQblg8yGIAeg\"><div id=\"taboola-below-article-thumbnails-wide-nd\"></div></span><script>window.YITSiteWidgets.push(['rJQblg8yGIAeg','TaboolaComponenta',{\"mode\":\"thumbs-feed-01\",\"container\":\"taboola-below-article-thumbnails-wide-nd\",\"placement\":\"Below Article Thumbnails Wide ND\",\"target_type\":\"mix\",\"isTabollaContainerOverwrite\":true}]);</script></span></div></span></div><div tabindex=\"0\" class=\"layoutItem Talkbacks-widget-grid1280-2\" style=\"width:740px;margin-bottom:20px\"><span class=\"no-print\"><span><span id=\"S1Nblg8kGL0xl\"><div class=\"SiteArticleComments \" id=\"SiteArticleComments\"><div><div class=\"ArticleCommentsTopTabUI1280\"><div class=\"tabTitle\"><span class=\"tbIcon\"></span><span>תגובות</span></div><div class=\"tabPanel\"><button class=\"newCommentBtn\" title=\"תגובה חדשה\"><span>הוספת תגובה</span></button></div></div></div><div class=\"mainFormWrapper\"><div class=\"AddCommentFormUI1280 hide\"><div class=\"AddCommentForm\"><div class=\"AddCommentFormContainer\"><div class=\"userDetailsInputs\"><input class=\"userDetailsInput inputStyle\" maxLength=\"20\" value=\"\" placeholder=\"שם\"/><input class=\"userDetailsInput inputStyle\" maxLength=\"35\" value=\"\" placeholder=\"דוא&quot;ל\"/></div><div class=\"commentInputs\"><input type=\"text\" class=\"title inputStyle\" maxLength=\"60\" value=\"\" placeholder=\"כותרת\"/><textarea class=\"comment inputStyle\" type=\"text\" maxLength=\"4000\" placeholder=\"תוכן תגובה\"></textarea></div><div class=\"bottomPanel\"><div class=\"bottomPanelRow\"><div class=\"termsOfService\"> אין לשלוח תגובות הכוללות מידע המפר את<a href=\"//www.ynet.co.il/articles/0,7340,L-3049332,00.html\" target=\"_blank\" title=\" תנאי השימוש\" style=\"margin:auto 5px\">תנאי השימוש של Ynet</a> לרבות דברי הסתה, דיבה וסגנון החורג מהטעם הטוב.</div><button class=\"sendBtn\" id=\"addCommentSendButton\" title=\"שלח תגובה\"><span>שלח תגובה</span></button></div></div></div></div></div></div><div class=\"commentsContainer\"></div></div></span><script>window.YITSiteWidgets.push(['S1Nblg8kGL0xl','SiteArticleComments',{\"articleId\":\"rjeyggbcge\",\"lang\":\"he\",\"isLtr\":false,\"isGptType\":false,\"displayType\":\"firma\",\"isGrid1280\":false,\"version\":1,\"showFormWhenEmpty\":true}]);</script></span></span></div></div></div><div class=\"layoutContainer\" style=\"position:relative;min-height:0;padding-bottom:0;width:1240px;margin:0 auto;box-sizing:border-box\"><div tabindex=\"0\" class=\"layoutItem Article Feed\" style=\"position:relative;top:0;left:0;margin-bottom:0\"><span class=\"no-print\"><div style=\"height:100%\"><div id=\"taboola-after-comment\"></div></div></span></div></div><div class=\"layoutContainer\" style=\"position:relative;min-height:0;padding-bottom:0;width:1240px;margin:0 auto;box-sizing:border-box\"><div tabindex=\"0\" class=\"layoutItem ynet-editable-footer\" style=\"position:relative;top:0;left:0;margin-bottom:0\"><span class=\"no-print\"><div style=\"height:\"><div class=\"ynetFooter editableVersion\"><div class=\"CreditLogos\"><div class=\"iconsWrapper\"><span><a id=\"HJS11el81G8Rlg\" href=\"https://www.activetrail.co.il/?utm_source=ynet&amp;utm_medium=website&amp;utm_campaign=logo\" target=\"_top\"><img title=\"\" style=\"height:40px;width:auto;min-width:80px;max-width:120px\" src=\"https://ynet-pic1.yit.co.il/picserver5/wcm_upload/2021/06/03/B1mCChmUc00/logo_44px_ActiveTrail.png\"/></a></span><span><a id=\"ryU11eg8yMUAgl\" href=\"http://www.radware.com/\" target=\"_top\"><img title=\"\" style=\"height:40px;width:auto;min-width:80px;max-width:120px\" src=\"https://ynet-pic1.yit.co.il/picserver5/wcm_upload/2021/06/03/HkRA2XLcO/logo_44px_Radware.png\"/></a></span><span><a id=\"SywZgxIkzLRlg\" href=\"http://www.acum.org.il/\" target=\"_top\"><img title=\"\" style=\"height:40px;width:auto;min-width:80px;max-width:120px\" src=\"https://ynet-pic1.yit.co.il/picserver5/wcm_upload/2021/06/03/BkWA0nXL5d/logo_44px_Akom.png\"/></a></span><span><a id=\"H1OZggI1z8Rex\" href=\"http://www.tali-rights.co.il/\" target=\"_top\"><img title=\"\" style=\"height:40px;width:auto;min-width:80px;max-width:120px\" src=\"https://ynet-pic1.yit.co.il/picserver5/wcm_upload/2021/06/03/HyE0AnmIcO/logo_44px_Tali.png\"/></a></span><span><a id=\"HyY11llLJfUCll\" href=\"https://yit.co.il/#utm_source=ynet.co.il&amp;utm_medium=referral&amp;utm_campaign=footer2\" target=\"_top\"><img title=\"UX\\UI עיצוב ופיתוח\" style=\"height:40px;width:auto;min-width:80px;max-width:120px\" src=\"https://ynet-pic1.yit.co.il/picserver5/wcm_upload/2021/06/20/HkZaCvhs00/logo_44px_yit__1_.png\"/></a></span></div></div></div></div></span></div></div></div><span><span id=\"SJq11eeUJfLCgg\"></span><script>window.YITSiteWidgets.push(['SJq11eeUJfLCgg','SiteScrollToTopButton',{}]);</script></span><span><span id=\"HJoZggLkMLCgl\"></span><script>window.YITSiteWidgets.push(['HJoZggLkMLCgl','SiteArticleImagesGallery',{\"images\":[{\"url\":\"https://ynet-pic1.yit.co.il/picserver6/wcm_upload/2025/10/22/Sk11wCTyLCll/6037341451483548434.jpg\",\"imageId\":\"ArticleImageData.SkxuX11lLAel\",\"publishedLink\":\"https://ynet-pic1.yit.co.il/cdn-cgi/image/format=auto/picserver6/crop_images/2025/10/22/Sk11wCTyLCll/Sk11wCTyLCll_0_0_960_1280_0_xxx.jpg\",\"originalId\":\"Sk11wCTyLCll\",\"x\":0,\"y\":0,\"width\":960,\"height\":1280,\"rotate\":0,\"credit\":\"צילום: באדיבות פקטורי 54\",\"caption\":\"תקופה של שינויים. פרידה עוזיאל\",\"alt\":\"פרידה עוזיאל פומה\",\"originalCaption\":\"פרידה עוזיאל פומה\",\"notes\":\"\",\"editData\":null,\"editedImageUrl\":\"\",\"fsError\":0,\"compositeType\":null,\"compositeTypeId\":null},{\"url\":\"https://ynet-pic1.yit.co.il/picserver6/wcm_upload/2025/10/22/r1w0ayUAgg/6037341451483548432.jpg\",\"imageId\":\"ArticleImageData.BJln4ZeIRee\",\"publishedLink\":\"https://ynet-pic1.yit.co.il/cdn-cgi/image/format=auto/picserver6/crop_images/2025/10/22/r1w0ayUAgg/r1w0ayUAgg_0_0_720_1280_0_xxx.jpg\",\"originalId\":\"r1w0ayUAgg\",\"x\":0,\"y\":0,\"width\":720,\"height\":1280,\"rotate\":0,\"credit\":\"צילום: באדיבות פקטורי 54\",\"caption\":\"\\\"הייתי ילדה משוגעת, אני לא מפחדת משינויים\\\"\",\"alt\":\"פרידה עוזיאל פומה\",\"originalCaption\":\"פרידה עוזיאל פומה\",\"notes\":\"\",\"editData\":null,\"editedImageUrl\":\"\",\"fsError\":0,\"compositeType\":null,\"compositeTypeId\":null},{\"url\":\"https://ynet-pic1.yit.co.il/picserver6/wcm_upload/2025/10/22/ryewCpy80ge/6037341451483548433.jpg\",\"imageId\":\"ArticleImageData.B1g4vWl80ee\",\"publishedLink\":\"https://ynet-pic1.yit.co.il/cdn-cgi/image/format=auto/picserver6/crop_images/2025/10/22/ryewCpy80ge/ryewCpy80ge_0_0_720_1280_0_xxx.jpg\",\"originalId\":\"ryewCpy80ge\",\"x\":0,\"y\":0,\"width\":720,\"height\":1280,\"rotate\":0,\"credit\":\"צילום: באדיבות פקטורי 54\",\"caption\":\"\\\"יכולתי להסתיר את זה, בחרתי לשתף\\\"\",\"alt\":\"פרידה עוזיאל פומה\",\"originalCaption\":\"פרידה עוזיאל פומה\",\"notes\":\"\",\"editData\":null,\"editedImageUrl\":\"\",\"fsError\":0,\"compositeType\":null,\"compositeTypeId\":null},{\"url\":\"https://ynet-pic1.yit.co.il/picserver6/wcm_upload/2025/08/10/BkgbOfI00ll/photo_2025_08_10_16_00_18.jpg\",\"imageId\":\"ArticleImageData.SJlMNu11LCeg\",\"publishedLink\":\"https://ynet-pic1.yit.co.il/cdn-cgi/image/format=auto/picserver6/crop_images/2025/08/10/BkgbOfI00ll/BkgbOfI00ll_0_0_1280_853_0_xxx.jpg\",\"originalId\":\"BkgbOfI00ll\",\"x\":0,\"y\":0,\"width\":1280,\"height\":853,\"rotate\":0,\"credit\":\"צילום: עמית סליקטר\",\"caption\":\"פרידה עוזיאל\",\"alt\":\"פרידה עוזיאל\",\"originalCaption\":\"פרידה עוזיאל\",\"notes\":\"\",\"editData\":null,\"editedImageUrl\":\"\",\"fsError\":0,\"compositeType\":null,\"compositeTypeId\":null}],\"articleId\":\"rjeyggbcge\",\"isLtr\":false}]);</script></span><span><span id=\"Syn11eeLkzUCxx\"><div class=\"tradingview-widget-container\"> </div></span><script>window.YITSiteWidgets.push(['Syn11eeLkzUCxx','StockPopUp',{}]);</script></span></div></div></div>\n            <script>\n                var isAbroad = false;\n            </script>\n        \n<!--wcm pixel 2021 -->\n<script>\nsetTimeout(function() {\n    window.$(\".promoLabel\").on(\"click\", function() {\n        window.dataLayer.push({\n            event: \"GA_Events\",\n            Category: \"Ynet+ - Registration\",\n            Action: \"Registration Source\",\n            Label: \"Ynet - Header\"\n        });\n    });\n    window.$(\".promButton\").on(\"click\", function() {\n        window.dataLayer.push({\n            event: \"GA_Events\",\n            Category: \"Ynet+ - Registration\",\n            Action: \"Registration Source\",\n            Label: \"Ynet - Strip\"\n        });\n    });\n}, 3000);\n</script>\n<!--wcm pixel 1881 -->\n<script>\nsetTimeout(function() {\nlet options = {};\nlet firstTime = true;\nlet observer = new IntersectionObserver(\n    function handleTaboola(entries, observer) {\n        entries.forEach(function(entry) {\n            if (entry.isIntersecting && firstTime) {\n                firstTime = false;\n                window.dataLayer.push({\n                    'taboolaFeedDisplay': '1',\n                    'event': 'taboola_event',\n                    'Category': 'Taboola',\n                    'Action': 'Endless Feed',\n                    'Label': 'Feed Displayed'\n                });\n                function pushVideo() {\n                    let video_container = document.querySelector('._cm-video-ad._cm-ad-feed-manager');\n                    if (video_container) {\n                        window.dataLayer.push({\n                            'taboolaFeedDisplay': '1',\n                            'event': 'taboola_event',\n                            'Category': 'Taboola',\n                            'Action': 'Endless Feed',\n                            'Label': 'Video Displayed'\n                        });\n                    }\n                }\n                setTimeout(pushVideo, 1000);\n            }\n        });\n    }, options);\ntaboolaElementCategory = document.querySelector(\"#taboola-below-home-page-nd\");\ntaboolaElementArticle = document.querySelector(\"#taboola-below-article-thumbnails-wide-nd\");\nif (taboolaElementCategory) {\n    observer.observe(taboolaElementCategory);\n} else if (taboolaElementArticle) {\n    observer.observe(taboolaElementArticle);\n}\n}, 1000);\n</script>\n<!--wcm pixel 5634 -->\n<script>\nsetTimeout(function() {\n    window.$(\".mainNav\").on(\"click\", \"span\", function() {\n        window.dataLayer.push({\n            event: \"Navigation_Events\",\n            Category: \"Navigation Bar\",\n            Action: \"Header\",\n            Label: window.$(this).text()\n        });\n    });\n    window.$(\".linksGroups\").on(\"click\",\"span\", function() {\n        window.dataLayer.push({\n            event: \"Navigation_Events\",\n            Category: \"Side Menu\",\n            Action: \"Content\",\n            Label: window.$(this).text()\n        });\n    });\n    \n}, 3000);\n</script>\n<!--wcm pixel 1681 -->\n<script>\nsetTimeout(function() {\n    window.$(\".mistakeText\").on(\"click\", function() {\n        window.dataLayer.push({\n            event: \"GA_Events\",\n            Category: \"Redmail\",\n            Action: \"Report To Red Mail\",\n            Label: window.articleId\n        });\n    });\n    window.$(\".redMail, .redMailText\").on(\"click\", function() {\n        window.dataLayer.push({\n            event: \"GA_Events\",\n            Category: \"Report Article Error\",\n            Action: \"Article Top\",\n            Label: window.articleId\n        });\n    });\n    window.$(\".tagName\").on(\"click\", function() {\n        window.dataLayer.push({\n            event: \"GA_Events\",\n            Category: \"Tags\",\n            Action: \"Click on Tag\",\n            Label: window.$(this).text()\n        });\n    });\n    window.$(\".SiteArticleSocialShareNew1280 .shareIcon1280.tb\").on(\"click\", function() {\n        window.dataLayer.push({\n            event: \"GA_Events\",\n            Category: \"Comments\",\n            Action: \"Add a Comment From - Article Page Top Menu\",\n            Label: document.body.querySelector(\".mainTitle\").innerText\n        });\n    });\n    window.$(\".SiteArticleContact .addNewComment\").on(\"click\", function() {\n        window.dataLayer.push({\n            event: \"GA_Events\",\n            Category: \"Comments\",\n            Action: \"Add a Comment From - Article Page Bottom Menu\",\n            Label: document.body.querySelector(\".mainTitle\").innerText\n        });\n    });\n    window.$(\".ArticleComment1280 .topView .topLeftView .details .commentToComent\").on(\"click\", function() {\n        window.dataLayer.push({\n            event: \"GA_Events\",\n            Category: \"Comments\",\n            Action: \"Add a Comment From - Another Comment\",\n            Label: document.body.querySelector(\".mainTitle\").innerText\n        });\n    });\n    window.$(\".ArticleImageGalleryShareButtons .fbBtn\").on(\"click\", function() \n{\n            window.dataLayer.push({\n                event: \"GA_Events\",\n                Category: \"Share\",\n                Action: \"Photo Gallery\",\n                Label: \"Facebook\"\n            });\n        });\n        window.$(\".ArticleImageGalleryShareButtons .twBtn\").on(\"click\", function() {\n            window.dataLayer.push({\n                event: \"GA_Events\",\n                Category: \"Share\",\n                Action: \"Photo Gallery\",\n                Label: \"Tweeter\"\n            });\n        });\n        window.$(\".ArticleImageGalleryShareButtons .mlBtn\").parent().on(\"click\", function() {\n            window.dataLayer.push({\n                event: \"GA_Events\",\n                Category: \"Share\",\n                Action: \"Photo Gallery\",\n                Label: \"Mail\"\n            });\n        });\n        window.$(\".flash, .flashText\").parent().on(\"click\", function() {\n            window.dataLayer.push({\n                event: \"Navigation_Events\",\n                Category: \"Navigation Bar\",\n                Action: \"Header\",\n                Label: \"מבזקים\"\n            });\n        });\n}, 3000);\n</script>\n<!--wcm pixel 1701 -->\n<script>\nsetTimeout(function() {\n    window.$(\".shareIcon1280.print\").on(\"click\", function() {\n         window.dataLayer.push({\n            event: \"GA_Events\",\n            Category: \"Print Article\",\n            Action: \"Article Top\",\n            Label: window.articleId\n        });\n    });\n}, 3000);\n</script>\n<!--wcm pixel 7403 -->\n<style>\n.grid1280_2.ynet .ArticleTagsComponent .tagName:hover a{\n color:#222221 ! important;\n}\n</style>\n\n<!--wcm pixel 14445 -->\n<script defer>document.addEventListener('load', function(d, s, id) {\n  var js, fjs = d.getElementsByTagName(s)[0];\n  if (d.getElementById(id)) return;\n  js = d.createElement(s);\n  js.id = id;\n  js.src = 'https://widget.prod.equally.ai/equally-widget.min.js';\n  fjs.parentNode.insertBefore(js, fjs);\n  window.EquallyAI = {\n    openToolbox: () => window.addEventListener('equally-ai:ready', () => window.EquallyAI.openToolbox()),\n    showLauncher: () => window.addEventListener('equally-ai:ready', () => window.EquallyAI.showLauncher()),\n    hideLauncher: () => window.addEventListener('equally-ai:ready', () => window.EquallyAI.hideLauncher()),\n  };\n}(document, 'script', 'equallyWidget'));\n!window.EQUALLY_AI_API_KEY && (window.EQUALLY_AI_HIDE_LAUNCHER = true, window.EQUALLY_AI_API_KEY = '7gcy23wq2h56kv997zvb5rrun8gatcd3', intervalId = setInterval(function() {\n  window.EquallyAi && (clearInterval(intervalId), window.EquallyAi = new EquallyAi);\n}, 500));\nwindow.EquallyAI.showLauncher();\n</script> \n\n<!--wcm pixel 10723 -->\n<script>\n(function() {\n    let div_id = \"\";\n    let placement_id = \"\";\n    let mode_id = \"\";\n    if (document.querySelector(\".PremiumArticleHeaderComponenta\")) {\n        if (document.querySelector(\"#ynet_premium_blocked\")) {\n            /* premium close article */\n            return;\n        }\n        /* premium open article */\n        div_id = \"taboola-mobile-mid-article-plus\";\n        placement_id = \"Mid Article Plus\";\n        mode_id = \"alternating-thumbnails-e-new\";\n    } else if (document.querySelector(\"#ArticleHeaderComponent\")) {\n        /* not premium article */\n        div_id = 'taboola-mid-page-article-thumbnails-nd';\n        placement_id = \"Mid Page Article Thumbnails ND\";\n        mode_id = \"alternating-thumbnails-abc\";\n    } else {\n        return;\n    }\n    let parent_div = ''\n    let first_div_is_video = false\n    let first_div_is_image = false\n    let first_div_is_live = false\n    let parent_divs = document.querySelectorAll(\"div.ArticleImageComponenta, .VideoComponenta, .VideoLiveComponenta\");\n    if (parent_divs[0]) {\n        if (parent_divs[0].className.indexOf(\"VideoComponenta\") > -1) {\n            first_div_is_video = true\n        }\n\telse if(parent_divs[0].className.indexOf(\"VideoLiveComponenta\") > -1){\n\t\tfirst_div_is_live = true\n\t\t}\n else if (parent_divs[0].className.indexOf(\"ArticleImageComponenta\") > -1 && !parent_divs[0].querySelector(\".ArticleLinkedImageComponenta\") && !parent_divs[0].querySelector(\".ArticleWrappedImageComponenta\")) {\n            first_div_is_image = true\n        }\n    }\n \n    if (first_div_is_video || first_div_is_image || first_div_is_live ) {\n        parent_div = parent_divs[0]\n    }\n    if (parent_div) {\n        const new_div = document.createElement(\"div\");\n        new_div.setAttribute(\"id\", div_id);\n        parent_div.parentNode.insertBefore(new_div, parent_div.nextSibling);\n\t\tif(new_div){\n\t\t\taddingThirdparagraphVideo(new_div)\n\t\t\t}\n        window._taboola = window._taboola || [];\n        _taboola.push({\n            mode: mode_id,\n            container: div_id,\n            placement: placement_id,\n            target_type: 'mix'\n        });\n    }\n})();\n\n    function addingThirdparagraphVideo(new_div) {\n        const element = new_div.parentNode;\n        const parent = element.parentNode;\n        const new_video_div = document.createElement(\"div\");\n        new_video_div.setAttribute(\"id\", \"Taboola-inline-video\");\n        const arrayOfDivs = Array.from(parent.children);\n        const firstIndex = Array.from(parent.children).indexOf(element);\n        const totalParag = arrayOfDivs.filter(item => item.classList.contains(\"text_editor_paragraph\")).length;\n        const allparag = document.querySelectorAll(\".text_editor_paragraph\");\n        const paragAfterNewDiv = arrayOfDivs.slice(firstIndex).filter(item => item.classList.contains(\"text_editor_paragraph\")).length;\n        const lastParag = allparag[allparag.length-1]\n        let textIndex = 0;\n        if (paragAfterNewDiv > 2) {\n            index = allparag.length - paragAfterNewDiv + 2;\n            allparag[index].appendChild(new_video_div);\n        }\n        else if (paragAfterNewDiv === 0){\n            parent.appendChild(new_video_div)\n        }\n        else{\n            lastParag.appendChild(new_video_div);\n        }\n    }\n</script>\n\n<!--wcm pixel 7322 -->\n<style>\n .grid1280_2 .ArticleBodyComponent .public-DraftEditor-content > div > *:last-child{\nmargin-bottom:3px  ! important; \n}\n.grid1280_2  .SiteArticleContact .foundMistake{\nmargin-bottom:5px  ! important; \n}\n\n</style>\n<!--wcm pixel 6002 -->\n<script type=\"text/javascript\">\n  (function() {\n    /** CONFIGURATION START **/\n    var _sf_async_config = window._sf_async_config = (window._sf_async_config || {});\n    _sf_async_config.uid = 20691;\n    _sf_async_config.domain = 'ynet.co.il';\n    _sf_async_config.flickerControl = false;\n    _sf_async_config.useCanonical = true;\n    _sf_async_config.useCanonicalDomain = true;\n    _sf_async_config.sections = 'pplus';\n    _sf_async_config.authors = 'pplus';\n    /** CONFIGURATION END **/\n    function loadChartbeat() {\n        var e = document.createElement('script');\n        var n = document.getElementsByTagName('script')[0];\n        e.type = 'text/javascript';\n        e.async = true;\n        e.src = '//static.chartbeat.com/js/chartbeat.js';\n        n.parentNode.insertBefore(e, n);\n    }\n    loadChartbeat();\n  })();\n</script>\n<script async src=\"//static.chartbeat.com/js/chartbeat_mab.js\"></script>\n\n<!--wcm pixel 4964 -->\n<script src=\"https://cdn.browsiprod.com/bootstrap/bootstrap.js\" id=\"browsi-tag\" data-pubKey=\"ynet\" data-siteKey=\"pplus\" async></script>\n\n\n\n<!--wcm pixel 6122 -->\n<script>\n(function () {\n\nif (window.innerWidth >= 767) {\n\nwindow.googletag = window.googletag || {cmd: []};\n\nlet adx_site = \"\";\n\nif (window.dcPath.includes(\"laisha\")) {\nadx_site = \"/laisha\";\n} else if (window.dcPath.includes(\"architecture\")) {\nadx_site = \"/architecture\"; \n} else if (window.dcPath.includes(\"menta\")) {\nadx_site = \"/menta\"; \n} else if (window.dcPath.includes(\"fashion\")) {\nadx_site = \"/fashion\"; \n} \n\nlet adx_path =(window.dcPath.includes(\"PnaiPlus\")) ? `/6870/pplus/desktop/interstitial.adx` : `/6870/ynet/desktop/interstitial.adx${adx_site}`;\n\nwindow.frequencyLogic = JSON.parse(localStorage.getItem(\"frequencyLogic\")) !== null ? JSON.parse(localStorage.getItem(\"frequencyLogic\")) : { datetime: Date.now(), displayedlast: '', };\nlet millis = Date.now() - frequencyLogic.datetime;\nlet IsUnique = JSON.parse(localStorage.getItem(\"frequencyLogic\")) === null || JSON.parse(localStorage.getItem(\"frequencyLogic\")) !== null && (Math.floor(millis / 1000) > 300);\n\n      // GPT ad slots\n      var interstitialSlot;\n\n      googletag.cmd.push(function() {\n\n        interstitialSlot = googletag.defineOutOfPageSlot(adx_path, googletag.enums.OutOfPageFormat.INTERSTITIAL);\n\n        if (interstitialSlot) {\n          interstitialSlot.addService(googletag.pubads());\n\n          googletag.pubads().addEventListener('slotOnload', function(event) {\n            if (interstitialSlot === event.slot) {            \n              frequencyLogic.add = `loaded`; \n              frequencyLogic.datetime = Date.now();\n              frequencyLogic.displayedlast = adx_path;\n              localStorage.setItem('frequencyLogic', JSON.stringify(frequencyLogic));\n            } \n          });\n\n          googletag.pubads().addEventListener('slotVisibilityChanged',\n              function(event) {\n                var slot = event.slot;              \n                if (slot === interstitialSlot) {                 \n                //  document.getElementsByTagName(\"body\")[0].style.overflow = \"hidden\";\n                } \n            }\n          );\n        }\n\n        googletag.pubads().collapseEmptyDivs(true);\n        googletag.pubads().enableSingleRequest();\n        googletag.enableServices();\n      });\n\n}\n\n})();\n    </script>\n<!--wcm pixel 11423 -->\n<script>\ndocument.addEventListener(\"DOMContentLoaded\", function() {\nconst frontButtons = document.querySelectorAll(\".frontCopyButton-pf\");\nfor (let i = 0; i < frontButtons.length; i++) {\n    frontButtons[i].classList.add(\"frontCopyButton\");\n}\n});\n</script>\n\n<!--wcm pixel 7323 -->\n<style>\n.SiteArticleContact{\nmargin-top:0 ! important;\n}\n</style>\n\n<!--wcm pixel 9922 -->\n<script>\ndocument.querySelectorAll(\".hContainer, .mContainer\").forEach((container,index)=>{\nif (window.location.href.includes(\"/plus/\") || (container.classList.contains(\"yplus\"))) {\n    tp = window.tp || [];\n    tp.push([\"setTags\", [\"isPay\"]]);\n}\n});\n</script>\n<!--wcm pixel 9968 -->\n<script>\n(function () {\n        if (document.querySelector(\".hContainer.yplus\")) return;\n\twindow.addEventListener('DOMContentLoaded', function() {\n\t\twindow._taboola = window._taboola || [];\n\t\t_taboola.push({flush: true});\n\t});\n})();\n</script>\n\n<!--wcm pixel 10282 -->\n<script>\n(function () {\n        if (document.querySelector(\".yplus\")) return;\n        var d = new Date();\n        window.xl8_config = {\n            \"p\": 883,\n            \"g\": 12,\n            \"dataObjects\": [\"dcPath\", \"dcTags\", \"dcSite\", \"idx\"],\n            \"cssObjects\": [{\n                    \"selector\": \"meta\",\n                    \"key\": \"property\",\n                    \"value\": \"content\"\n                },\n                {\n                    \"selector\": \"meta\",\n                    \"key\": \"name\",\n                    \"value\": \"content\"\n                }\n            ]\n        }\n        window.idx = {\n\t\t\"log_timestamp\": (\"00\" + (d.getMonth() + 1)).slice(-2) + \"-\" + (\"00\" + d.getDate()).slice(-2) + \"-\" + d.getFullYear() + \" \" + (\"00\" + d.getHours()).slice(-2) + \":\" + (\"00\" + d.getMinutes()).slice(-2) + \":\" + (\"00\" + d.getSeconds()).slice(-2)\n        }\n        var xl8_script = document.createElement(\"script\");\n        xl8_script.src = \"https://cdn.exelator.com/build/static.min.js\";\n        xl8_script.type = \"text/javascript\";\n        xl8_script.async = true;\n        document.body.appendChild(xl8_script);\n})();\n</script>\n\n<!--wcm pixel 11603 -->\n<script> window.analyticsCode = [\"G-B0H8ZSFBCE\",\"UA-10772561-46\"] </script>\n<!--wcm pixel 9825 -->\n<script>\n_pageRefresher = {\n    c: {},\n    i: function() {\n        var a = this;\n        var stopFromLive = 1;\n        window.pageRefreshDisable = function(g) {\n            if (!g) {\n                var g = 'flashvideoplayer'\n            } else if (g == 'liveVideo') {\n                stopFromLive = 0;\n            }\n            a.c[g] = true;\n        };\n        if (stopFromLive == 1) {\n            window.pageRefreshEnable = function(g) {\n                if (!g)\n                    var g = 'flashvideoplayer';\n                a.c[g] = false;\n            };\n        }\n        a.t();\n    },\n    t: function() {\n        var subchannel_id = document.head.querySelector(\"[property~=sub-channel-ID][content]\").content;\n        var refresh_time = 420000\n        if (document.querySelector(\".articleContainer.yplus\")) {\n            refresh_time = 7200000\n        } else if (document.querySelector(\".articleContainer\")) {\n            refresh_time = 900000\n        } else if (subchannel_id == '8') {\n            refresh_time = 840000\n        } else if (subchannel_id == '43113') {\n            refresh_time = 18000000\n        }\n        var a = this;\n        setTimeout(function() {\n            var o = false;\n            for (var g in a.c) {\n                if (a.c[g]) {\n                    o = true;\n                    break;\n                }\n            }\n            if (!o) {\n                window.location.reload();\n            }\n            a.t();\n        }, refresh_time);\n    }\n};\n_pageRefresher.i();\n</script>\n\n<!--wcm pixel 12144 -->\n<style>\n.tp-modal-open .tp-modal{\n    backdrop-filter: blur(7.5px);\n}\n.tp-modal-open .tp-backdrop {\n    background: #1212147d;\n}\n.tp-iframe-wrapper.tp-active .tp-close.tp-active{\ntop:13px !important;\nborder:none;\nbackground: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18.368' height='18.369' viewBox='0 0 18.368 18.369'%3E%3Cpath data-name='Path 45' d='m3970.786 5206.154-16.954 16.955' transform='translate(-3953.125 -5205.447)' style='fill:none;stroke:%23fff;stroke-width:2px'/%3E%3Cpath data-name='Path 46' d='m3953.832 5206.154 16.954 16.955' transform='translate(-3953.125 -5205.447)' style='fill:none;stroke:%23fff;stroke-width:2px'/%3E%3C/svg%3E%0A\") center center no-repeat !important;\n}\n.tp-close {\n    height: 18px !important;\nwidth:16px !important;\n}\n.tp-modal .tp-iframe-wrapper[dir=rtl] .tp-close {\n    right:14px!important;\n}\n.tp-modal .tp-close{\n  right: 15px!important;\nbox-shadow: none!important;\n}\n\n</style>\n<!--wcm pixel 13082 -->\n<script>\n(function () {\n    const canonicalElm = document.querySelector(\"link[rel=canonical]\"); \n    const canonical = canonicalElm && canonicalElm.href;\n    const yplusArticle = document.querySelector(\".articleContainer.yplus\");\n    if (!canonical) return;\n    if(yplusArticle) return;\n    let parent_div = document.querySelector(\"#ArticleBodyComponent\")\n    if (parent_div) {     \n        const new_div_margin = document.createElement(\"div\");\n        new_div_margin.style.marginTop = \"20px\";\n        //const playerElm = document.createElement(\"google-read-aloud-player\");\n        const trinityScript = document.createElement('script');\n        trinityScript.setAttribute('fetchpriority', 'high');\n        trinityScript.src = 'https://trinitymedia.ai/player/trinity/2900015643/?pageURL=' + encodeURIComponent(window.location.href);\n        //document.currentScript.parentNode.insertBefore(trinityScript, document.currentScript);\n        parent_div.parentNode.insertBefore(trinityScript, parent_div);  \n    }\n})();\n</script>\n<style>\n#ArticleBodyComponent{\npadding-top:20px;}\n</style>\n<!--wcm pixel 12162 -->\n<script id=\"ga4_pplus\" src=\"https://ynet-pic1.yit.co.il/Common/Api/Scripts/GA4/ga4-pplus-31.3.24.js\"></script><script>window.wcm_marketingArticle=false</script>\n</body>\n</html>"
+        }
+      }
+    ],
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "BASE_URL": "https://www.ynet.co.il",
+          "MAX_PAGES": 1,
+          "AD_HOSTS": [
+            "doubleclick",
+            "googlesyndication",
+            "taboola",
+            "outbrain",
+            "ad.doubleclick",
+            "tpc.googlesyndication"
+          ],
+          "AD_SELECTORS": [
+            ".ad",
+            ".banner",
+            "sponsor",
+            "[id*='ad']",
+            "[class*='sponsor']"
+          ],
+          "RATE_LIMIT_SEC": 2,
+          "USER_AGENT": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "SPREADSHEET_ID": "1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk"
+        }
+      }
+    ],
+    "Merge Real or Stub Ads": [
+      {
+        "json": {
+          "image_url": "https://images.pexels.com/photos/14615199/pexels-photo-14615199.jpeg?_gl=1*13dhtu6*_ga*OTAzODk4OTMyLjE3NjExMTM1ODQ.*_ga_8JE65Q40S6*czE3NjEyMTA3NjEkbzMkZzEkdDE3NjEyMTA4MjYkajU5JGwwJGgw",
+          "width": 300,
+          "height": 250,
+          "placement_hint": "iframe:googlesyndication",
+          "ad_host": "googlesyndication",
+          "page_url": "https://www.ynet.co.il/article/stub1"
+        }
+      },
+      {
+        "json": {
+          "image_url": "https://fastly.picsum.photos/id/962/536/354.jpg?hmac=EkOEf3fR11Y3KOWT81hl8NkkGHAL26Wp6IzIFkDOH9g",
+          "width": 728,
+          "height": 90,
+          "placement_hint": "iframe:doubleclick",
+          "ad_host": "doubleclick",
+          "page_url": "https://www.ynet.co.il/article/stub2"
+        }
+      },
+      {
+        "json": {
+          "image_url": "https://fastly.picsum.photos/id/866/536/354.jpg?hmac=tGofDTV7tl2rprappPzKFiZ9vDh5MKj39oa2D--gqhA",
+          "width": 300,
+          "height": 250,
+          "placement_hint": "iframe:taboola",
+          "ad_host": "taboola",
+          "page_url": "https://www.ynet.co.il/article/stub2"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Fetch Ynet Homepage": {
+      "main": [
+        [
+          {
+            "node": "Extract Article Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Article Links": {
+      "main": [
+        [
+          {
+            "node": "Loop Article Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rate Limit Delay": {
+      "main": [
+        [
+          {
+            "node": "Fetch Article Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Article Page": {
+      "main": [
+        [
+          {
+            "node": "Add article URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stub Ad Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Real or Stub Ads",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Real or Stub Ads": {
+      "main": [
+        [
+          {
+            "node": "Generate Image Hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Image Hash": {
+      "main": [
+        [
+          {
+            "node": "Add Run Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Run Metadata": {
+      "main": [
+        [
+          {
+            "node": "Check Each Ad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to ads_inventory": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Article Links": {
+      "main": [
+        [
+          {
+            "node": "Extract All Images and Iframes",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Stub Ad Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rate Limit Delay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read All Existing Ads": {
+      "main": [
+        [
+          {
+            "node": "Fetch Ynet Homepage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Each Ad": {
+      "main": [
+        [
+          {
+            "node": "If Ad Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Ad Exists": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save to ads_inventory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Output Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract All Images and Iframes": {
+      "main": [
+        [
+          {
+            "node": "Filter by AD_HOSTS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter by AD_HOSTS": {
+      "main": [
+        [
+          {
+            "node": "Merge Real or Stub Ads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Read All Existing Ads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add article URL": {
+      "main": [
+        [
+          {
+            "node": "Loop Article Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "timezone": "Asia/Jerusalem"
+  },
+  "versionId": "3259e21b-e5c0-40ac-98ce-29ee43c9fb30",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b19df818dc6d5d93143869816ee7d272a575db9ee303f5834081147be1ff09b8"
+  },
+  "id": "Ybv4fVw4u5FLLONr",
+  "tags": []
+}

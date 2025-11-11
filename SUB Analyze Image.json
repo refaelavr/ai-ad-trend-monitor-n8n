@@ -1,0 +1,1478 @@
+{
+  "name": "SUB Analyze Image",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "636d8dca-2bfd-4357-ac71-26524935db4d",
+              "name": "RUN_TYPE",
+              "value": "analysis",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        256
+      ],
+      "id": "d00405f9-3e9e-40bf-b665-bdbd4860e967",
+      "name": "Context - Analysis Params"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "image_url"
+            },
+            {
+              "name": "run_id"
+            },
+            {
+              "name": "run_ts"
+            },
+            {
+              "name": "SPREADSHEET_ID"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        256
+      ],
+      "id": "41de9d2f-c636-4d48-b02f-3b26fbdda750",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.imagga.com/v2/tags?image_url={{ encodeURIComponent($('When Executed by Another Workflow').item.json.image_url) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        160
+      ],
+      "id": "e1ad8b68-c8f5-41ed-978c-0159446740d8",
+      "name": "Get Objects from Imagga API",
+      "retryOnFail": true,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "INm4MC0yoyJpUDBz",
+          "name": "Imagga API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.imagga.com/v2/text?image_url={{ encodeURIComponent($('When Executed by Another Workflow').item.json.image_url) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        352
+      ],
+      "id": "8997cbde-037f-456d-b7ea-1a10d110b651",
+      "name": "Get Text from Imagga API",
+      "retryOnFail": true,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "INm4MC0yoyJpUDBz",
+          "name": "Imagga API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.imagga.com/v2/colors?image_url={{ encodeURIComponent($('When Executed by Another Workflow').item.json.image_url) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "extract_object_colors",
+              "value": "0"
+            },
+            {
+              "name": "overall_count",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        -32
+      ],
+      "id": "af94b797-a9f5-4d9d-9889-80d956fbf770",
+      "name": "Get Colors from Imagga API",
+      "retryOnFail": true,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "INm4MC0yoyJpUDBz",
+          "name": "Imagga API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        224
+      ],
+      "id": "24669169-eb68-4e43-86b7-4b13a2b5a497",
+      "name": "Merge Iamge Analysis Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Metadata ---\nconst imageUrl = $('When Executed by Another Workflow').first().json.image_url || '';\nconst runTs = $('When Executed by Another Workflow').first().json.run_ts || new Date().toISOString();\n\nif (!imageUrl) {\n  return [{ json: { error: 'No image_url provided', analyzed_ts: runTs } }];\n}\n\n// --- Input ---\nconst merged = $input.all().map(i => i.json);\n\n// --- Defaults ---\nlet palette1 = null;\nlet palette2 = null;\nlet palette3 = null;\nlet extractedText = false;\nlet hasFace = false;\nlet characters = false;\nlet objects = false;\n\n// --- COLORS ---\ntry {\n  const colorNode = merged.find(i => i.result?.colors);\n  const colors = colorNode?.result?.colors?.image_colors || [];\n  if (colors.length > 0) palette1 = colors[0].html_code;\n  if (colors.length > 1) palette2 = colors[1].html_code;\n  if (colors.length > 2) palette3 = colors[2].html_code;\n} catch (e) {\n  console.log('Color extraction failed:', e);\n}\n\n// --- TAGS (objects + characters) ---\ntry {\n  const tagNode = merged.find(i => i.result?.tags);\n  const tags = tagNode?.result?.tags || [];\n\n  if (tags.length > 0) {\n    const tagNames = tags.map(t => t.tag?.en?.toLowerCase());\n\n    // Character-related descriptive keywords\n    const characterKeywords = [\n'smiling','happy','sad','angry','serious','adult','child','man','woman','boy','girl','professional','business','casual','fashion','portrait','retro','vintage','lifestyle','urban','indoor','outdoor','sport','creative','artistic','romantic','modern','minimal','colorful','student','model','attractive','stylish','young','old'\n    ];\n\n    // Categorize tags\n    const characterTags = tagNames.filter(t => characterKeywords.includes(t));\n    const objectTags = tagNames.filter(t => !characterKeywords.includes(t));\n\n    // Assign to outputs\n    characters = characterTags.slice(0, 10).join(', ') || false;\n    objects = objectTags.slice(0, 10).join(', ') || false;\n  }\n} catch (e) {\n  console.log('Tag extraction failed:', e);\n}\n\n// --- TEXT ---\ntry {\n  const textNode = merged.find(i => i.result?.text);\n  const textArr = textNode?.result?.text || [];\n  if (Array.isArray(textArr) && textArr.length > 0) {\n    extractedText = textArr.map(t => t.data).join(' ').trim() || false;\n  }\n} catch (e) {\n  console.log('Text extraction failed:', e);\n}\n\n// --- FACES ---\ntry {\n  const faceNode = merged.find(i => i.result?.faces);\n  const faces = faceNode?.result?.faces || [];\n  hasFace = faces.length > 0;\n} catch (e) {\n  console.log('Face extraction failed:', e);\n}\n\n// --- Final Output ---\nreturn [{\n  json: {\n    image_url: imageUrl,\n    analyzed_ts: runTs,\n    palette_1: palette1,\n    palette_2: palette2,\n    palette_3: palette3,\n    extracted_text: extractedText || false,\n    has_face: hasFace,\n    characters: characters,\n    objects: objects || false\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        256
+      ],
+      "id": "4fca965b-421f-4ad3-bdbb-3efdc4472e88",
+      "name": "Prepare Image Analysis Data"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('When Executed by Another Workflow').first().json.SPREADSHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2105146243,
+          "mode": "list",
+          "cachedResultName": "image_analysis",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=2105146243"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "analyzed_ts",
+              "displayName": "analyzed_ts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "palette_1",
+              "displayName": "palette_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "palette_2",
+              "displayName": "palette_2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "palette_3",
+              "displayName": "palette_3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "characters",
+              "displayName": "characters",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "objects",
+              "displayName": "objects",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "has_face",
+              "displayName": "has_face",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "extracted_text",
+              "displayName": "extracted_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1104,
+        256
+      ],
+      "id": "80128a68-9eec-4676-a38a-7145569d5040",
+      "name": "Add Row to image_analysis",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.imagga.com/v2/faces/detections?image_url={{ encodeURIComponent($('When Executed by Another Workflow').item.json.image_url) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        544
+      ],
+      "id": "b56c7a5f-591f-4f84-9ac2-3a924e71f09a",
+      "name": "Get Faces from Imagga API",
+      "retryOnFail": true,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "INm4MC0yoyJpUDBz",
+          "name": "Imagga API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## SUB-WORKFLOW: Analyze Image\n\nINPUT:\n- image_url\n- run_id\n- run_ts\n- SPREADSHEET_ID\n\nOUTPUT:\n- palette_1, palette_2, palette_3\n- extracted_text (OCR)\n- has_face (boolean)\n- characters (descriptive tags)\n- objects (detected items)\n\nAPI: Imagga (4 endpoints)\nDURATION: ~30 seconds per image",
+        "height": 400,
+        "width": 448,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -512,
+        -272
+      ],
+      "typeVersion": 1,
+      "id": "b81dd160-b10c-4b82-80bb-6b4c25021507",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Analysis Pipeline\n\n4 Parallel API Requests:\n\n1. COLORS (/colors)\n   → Top 3 hex colors\n\n2. TAGS (/tags)\n   → Objects + character descriptors\n   → Separated by keyword matching\n\n3. TEXT (/text)\n   → OCR extracted text\n\n4. FACES (/faces)\n   → Boolean: has_face",
+        "height": 368,
+        "width": 448,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -512,
+        144
+      ],
+      "typeVersion": 1,
+      "id": "e06f4087-1662-4c45-ac65-c8b418a112ac",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Character vs Object Tagging\n\nCHARACTER KEYWORDS:\n- smiling, happy, sad, angry, serious\n- adult, child, man, woman, boy, girl\n- professional, business, casual, fashion\n- portrait, retro, vintage, lifestyle\n- urban, indoor, outdoor, sport, creative\n- artistic, romantic, modern, minimal\n- colorful, student, model, attractive\n- stylish, young, old\n\nAll other tags → objects\n\nEXAMPLES:\n- \"smiling man\" → characters\n- \"laptop\" → objects",
+        "height": 400,
+        "width": 416,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        656,
+        -304
+      ],
+      "typeVersion": 1,
+      "id": "dcc282d7-28fd-46ef-8063-4fbce5be48c5",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {
+    "Get Colors from Imagga API": [
+      {
+        "json": {
+          "result": {
+            "colors": {
+              "background_colors": [],
+              "color_percent_threshold": 1.75,
+              "color_variance": 16,
+              "foreground_colors": [],
+              "image_colors": [
+                {
+                  "b": 50,
+                  "closest_palette_color": "graphite",
+                  "closest_palette_color_html_code": "#3a3536",
+                  "closest_palette_color_parent": "black",
+                  "closest_palette_distance": 3.61316061019897,
+                  "g": 50,
+                  "html_code": "#323232",
+                  "percent": 43.9033164978027,
+                  "r": 50
+                },
+                {
+                  "b": 75,
+                  "closest_palette_color": "ebony",
+                  "closest_palette_color_html_code": "#41424a",
+                  "closest_palette_color_parent": "black",
+                  "closest_palette_distance": 5.64104604721069,
+                  "g": 75,
+                  "html_code": "#4b4b4b",
+                  "percent": 20.7100772857666,
+                  "r": 75
+                },
+                {
+                  "b": 43,
+                  "closest_palette_color": "graphite",
+                  "closest_palette_color_html_code": "#3a3536",
+                  "closest_palette_color_parent": "black",
+                  "closest_palette_distance": 4.9031400680542,
+                  "g": 43,
+                  "html_code": "#2b2b2b",
+                  "percent": 14.6254215240479,
+                  "r": 43
+                },
+                {
+                  "b": 96,
+                  "closest_palette_color": "blue steel",
+                  "closest_palette_color_html_code": "#626879",
+                  "closest_palette_color_parent": "grey",
+                  "closest_palette_distance": 9.03455352783203,
+                  "g": 96,
+                  "html_code": "#606060",
+                  "percent": 13.3688077926636,
+                  "r": 96
+                },
+                {
+                  "b": 143,
+                  "closest_palette_color": "pewter",
+                  "closest_palette_color_html_code": "#84898c",
+                  "closest_palette_color_parent": "grey",
+                  "closest_palette_distance": 3.61224937438965,
+                  "g": 143,
+                  "html_code": "#8f8f8f",
+                  "percent": 7.39237594604492,
+                  "r": 143
+                }
+              ],
+              "object_percentage": 0
+            }
+          },
+          "status": {
+            "text": "",
+            "type": "success"
+          }
+        }
+      }
+    ],
+    "Get Objects from Imagga API": [
+      {
+        "json": {
+          "result": {
+            "tags": [
+              {
+                "confidence": 64.6813430786133,
+                "tag": {
+                  "en": "book jacket"
+                }
+              },
+              {
+                "confidence": 57.3199195861816,
+                "tag": {
+                  "en": "jacket"
+                }
+              },
+              {
+                "confidence": 38.2397308349609,
+                "tag": {
+                  "en": "wrapping"
+                }
+              },
+              {
+                "confidence": 25.9215145111084,
+                "tag": {
+                  "en": "covering"
+                }
+              },
+              {
+                "confidence": 22.1760921478271,
+                "tag": {
+                  "en": "man"
+                }
+              },
+              {
+                "confidence": 17.8484172821045,
+                "tag": {
+                  "en": "people"
+                }
+              },
+              {
+                "confidence": 17.1039867401123,
+                "tag": {
+                  "en": "wall"
+                }
+              },
+              {
+                "confidence": 15.0164365768433,
+                "tag": {
+                  "en": "adult"
+                }
+              },
+              {
+                "confidence": 14.29172706604,
+                "tag": {
+                  "en": "sign"
+                }
+              },
+              {
+                "confidence": 14.2298345565796,
+                "tag": {
+                  "en": "male"
+                }
+              },
+              {
+                "confidence": 14.1496706008911,
+                "tag": {
+                  "en": "person"
+                }
+              },
+              {
+                "confidence": 13.9688529968262,
+                "tag": {
+                  "en": "business"
+                }
+              },
+              {
+                "confidence": 13.3298120498657,
+                "tag": {
+                  "en": "building"
+                }
+              },
+              {
+                "confidence": 12.540566444397,
+                "tag": {
+                  "en": "old"
+                }
+              },
+              {
+                "confidence": 11.6818466186523,
+                "tag": {
+                  "en": "shop"
+                }
+              },
+              {
+                "confidence": 11.5782232284546,
+                "tag": {
+                  "en": "vintage"
+                }
+              },
+              {
+                "confidence": 10.9991264343262,
+                "tag": {
+                  "en": "portrait"
+                }
+              },
+              {
+                "confidence": 10.6930227279663,
+                "tag": {
+                  "en": "room"
+                }
+              },
+              {
+                "confidence": 10.6880750656128,
+                "tag": {
+                  "en": "brick"
+                }
+              },
+              {
+                "confidence": 10.452564239502,
+                "tag": {
+                  "en": "brunette"
+                }
+              },
+              {
+                "confidence": 10.4497842788696,
+                "tag": {
+                  "en": "outdoors"
+                }
+              },
+              {
+                "confidence": 10.427939414978,
+                "tag": {
+                  "en": "standing"
+                }
+              },
+              {
+                "confidence": 10.3951816558838,
+                "tag": {
+                  "en": "looking"
+                }
+              },
+              {
+                "confidence": 10.367748260498,
+                "tag": {
+                  "en": "home"
+                }
+              },
+              {
+                "confidence": 10.1275281906128,
+                "tag": {
+                  "en": "smiling"
+                }
+              },
+              {
+                "confidence": 10.1192188262939,
+                "tag": {
+                  "en": "student"
+                }
+              },
+              {
+                "confidence": 10.0265579223633,
+                "tag": {
+                  "en": "house"
+                }
+              },
+              {
+                "confidence": 9.70373725891113,
+                "tag": {
+                  "en": "one"
+                }
+              },
+              {
+                "confidence": 9.56333065032959,
+                "tag": {
+                  "en": "professional"
+                }
+              },
+              {
+                "confidence": 9.56278991699219,
+                "tag": {
+                  "en": "boy"
+                }
+              },
+              {
+                "confidence": 9.50758075714111,
+                "tag": {
+                  "en": "structure"
+                }
+              },
+              {
+                "confidence": 9.39404773712158,
+                "tag": {
+                  "en": "lifestyle"
+                }
+              },
+              {
+                "confidence": 9.25594329833984,
+                "tag": {
+                  "en": "black"
+                }
+              },
+              {
+                "confidence": 8.78010654449463,
+                "tag": {
+                  "en": "school"
+                }
+              },
+              {
+                "confidence": 8.73278331756592,
+                "tag": {
+                  "en": "cash machine"
+                }
+              },
+              {
+                "confidence": 8.55793285369873,
+                "tag": {
+                  "en": "door"
+                }
+              },
+              {
+                "confidence": 8.55539512634277,
+                "tag": {
+                  "en": "construction"
+                }
+              },
+              {
+                "confidence": 8.47282981872559,
+                "tag": {
+                  "en": "casual"
+                }
+              },
+              {
+                "confidence": 8.39469623565674,
+                "tag": {
+                  "en": "pretty"
+                }
+              },
+              {
+                "confidence": 8.35915565490723,
+                "tag": {
+                  "en": "bookshop"
+                }
+              },
+              {
+                "confidence": 8.30259895324707,
+                "tag": {
+                  "en": "child"
+                }
+              },
+              {
+                "confidence": 7.77535390853882,
+                "tag": {
+                  "en": "model"
+                }
+              },
+              {
+                "confidence": 7.7592978477478,
+                "tag": {
+                  "en": "blackboard"
+                }
+              },
+              {
+                "confidence": 7.73145055770874,
+                "tag": {
+                  "en": "corporate"
+                }
+              },
+              {
+                "confidence": 7.69390916824341,
+                "tag": {
+                  "en": "attractive"
+                }
+              },
+              {
+                "confidence": 7.39499282836914,
+                "tag": {
+                  "en": "billboard"
+                }
+              },
+              {
+                "confidence": 7.37253665924072,
+                "tag": {
+                  "en": "retro"
+                }
+              },
+              {
+                "confidence": 7.37188673019409,
+                "tag": {
+                  "en": "exterior"
+                }
+              },
+              {
+                "confidence": 7.36667680740356,
+                "tag": {
+                  "en": "device"
+                }
+              },
+              {
+                "confidence": 7.30489635467529,
+                "tag": {
+                  "en": "alone"
+                }
+              },
+              {
+                "confidence": 7.2394118309021,
+                "tag": {
+                  "en": "aged"
+                }
+              },
+              {
+                "confidence": 7.07689905166626,
+                "tag": {
+                  "en": "job"
+                }
+              },
+              {
+                "confidence": 7.04190540313721,
+                "tag": {
+                  "en": "travel"
+                }
+              },
+              {
+                "confidence": 7.03761577606201,
+                "tag": {
+                  "en": "office"
+                }
+              },
+              {
+                "confidence": 7.0295934677124,
+                "tag": {
+                  "en": "architecture"
+                }
+              }
+            ]
+          },
+          "status": {
+            "text": "",
+            "type": "success"
+          }
+        }
+      }
+    ],
+    "Get Text from Imagga API": [
+      {
+        "json": {
+          "result": {
+            "text": [
+              {
+                "coordinates": {
+                  "height": 81,
+                  "width": 604,
+                  "xmax": 726,
+                  "xmin": 122,
+                  "ymax": 175,
+                  "ymin": 94
+                },
+                "data": "LADEZONE"
+              }
+            ]
+          },
+          "status": {
+            "text": "",
+            "type": "success"
+          }
+        }
+      }
+    ],
+    "Merge Iamge Analysis Data": [
+      {
+        "json": {
+          "result": {
+            "colors": {
+              "background_colors": [],
+              "color_percent_threshold": 1.75,
+              "color_variance": 16,
+              "foreground_colors": [],
+              "image_colors": [
+                {
+                  "b": 50,
+                  "closest_palette_color": "graphite",
+                  "closest_palette_color_html_code": "#3a3536",
+                  "closest_palette_color_parent": "black",
+                  "closest_palette_distance": 3.61316061019897,
+                  "g": 50,
+                  "html_code": "#323232",
+                  "percent": 43.9033164978027,
+                  "r": 50
+                },
+                {
+                  "b": 75,
+                  "closest_palette_color": "ebony",
+                  "closest_palette_color_html_code": "#41424a",
+                  "closest_palette_color_parent": "black",
+                  "closest_palette_distance": 5.64104604721069,
+                  "g": 75,
+                  "html_code": "#4b4b4b",
+                  "percent": 20.7100772857666,
+                  "r": 75
+                },
+                {
+                  "b": 43,
+                  "closest_palette_color": "graphite",
+                  "closest_palette_color_html_code": "#3a3536",
+                  "closest_palette_color_parent": "black",
+                  "closest_palette_distance": 4.9031400680542,
+                  "g": 43,
+                  "html_code": "#2b2b2b",
+                  "percent": 14.6254215240479,
+                  "r": 43
+                },
+                {
+                  "b": 96,
+                  "closest_palette_color": "blue steel",
+                  "closest_palette_color_html_code": "#626879",
+                  "closest_palette_color_parent": "grey",
+                  "closest_palette_distance": 9.03455352783203,
+                  "g": 96,
+                  "html_code": "#606060",
+                  "percent": 13.3688077926636,
+                  "r": 96
+                },
+                {
+                  "b": 143,
+                  "closest_palette_color": "pewter",
+                  "closest_palette_color_html_code": "#84898c",
+                  "closest_palette_color_parent": "grey",
+                  "closest_palette_distance": 3.61224937438965,
+                  "g": 143,
+                  "html_code": "#8f8f8f",
+                  "percent": 7.39237594604492,
+                  "r": 143
+                }
+              ],
+              "object_percentage": 0
+            }
+          },
+          "status": {
+            "text": "",
+            "type": "success"
+          }
+        }
+      },
+      {
+        "json": {
+          "result": {
+            "tags": [
+              {
+                "confidence": 64.6813430786133,
+                "tag": {
+                  "en": "book jacket"
+                }
+              },
+              {
+                "confidence": 57.3199195861816,
+                "tag": {
+                  "en": "jacket"
+                }
+              },
+              {
+                "confidence": 38.2397308349609,
+                "tag": {
+                  "en": "wrapping"
+                }
+              },
+              {
+                "confidence": 25.9215145111084,
+                "tag": {
+                  "en": "covering"
+                }
+              },
+              {
+                "confidence": 22.1760921478271,
+                "tag": {
+                  "en": "man"
+                }
+              },
+              {
+                "confidence": 17.8484172821045,
+                "tag": {
+                  "en": "people"
+                }
+              },
+              {
+                "confidence": 17.1039867401123,
+                "tag": {
+                  "en": "wall"
+                }
+              },
+              {
+                "confidence": 15.0164365768433,
+                "tag": {
+                  "en": "adult"
+                }
+              },
+              {
+                "confidence": 14.29172706604,
+                "tag": {
+                  "en": "sign"
+                }
+              },
+              {
+                "confidence": 14.2298345565796,
+                "tag": {
+                  "en": "male"
+                }
+              },
+              {
+                "confidence": 14.1496706008911,
+                "tag": {
+                  "en": "person"
+                }
+              },
+              {
+                "confidence": 13.9688529968262,
+                "tag": {
+                  "en": "business"
+                }
+              },
+              {
+                "confidence": 13.3298120498657,
+                "tag": {
+                  "en": "building"
+                }
+              },
+              {
+                "confidence": 12.540566444397,
+                "tag": {
+                  "en": "old"
+                }
+              },
+              {
+                "confidence": 11.6818466186523,
+                "tag": {
+                  "en": "shop"
+                }
+              },
+              {
+                "confidence": 11.5782232284546,
+                "tag": {
+                  "en": "vintage"
+                }
+              },
+              {
+                "confidence": 10.9991264343262,
+                "tag": {
+                  "en": "portrait"
+                }
+              },
+              {
+                "confidence": 10.6930227279663,
+                "tag": {
+                  "en": "room"
+                }
+              },
+              {
+                "confidence": 10.6880750656128,
+                "tag": {
+                  "en": "brick"
+                }
+              },
+              {
+                "confidence": 10.452564239502,
+                "tag": {
+                  "en": "brunette"
+                }
+              },
+              {
+                "confidence": 10.4497842788696,
+                "tag": {
+                  "en": "outdoors"
+                }
+              },
+              {
+                "confidence": 10.427939414978,
+                "tag": {
+                  "en": "standing"
+                }
+              },
+              {
+                "confidence": 10.3951816558838,
+                "tag": {
+                  "en": "looking"
+                }
+              },
+              {
+                "confidence": 10.367748260498,
+                "tag": {
+                  "en": "home"
+                }
+              },
+              {
+                "confidence": 10.1275281906128,
+                "tag": {
+                  "en": "smiling"
+                }
+              },
+              {
+                "confidence": 10.1192188262939,
+                "tag": {
+                  "en": "student"
+                }
+              },
+              {
+                "confidence": 10.0265579223633,
+                "tag": {
+                  "en": "house"
+                }
+              },
+              {
+                "confidence": 9.70373725891113,
+                "tag": {
+                  "en": "one"
+                }
+              },
+              {
+                "confidence": 9.56333065032959,
+                "tag": {
+                  "en": "professional"
+                }
+              },
+              {
+                "confidence": 9.56278991699219,
+                "tag": {
+                  "en": "boy"
+                }
+              },
+              {
+                "confidence": 9.50758075714111,
+                "tag": {
+                  "en": "structure"
+                }
+              },
+              {
+                "confidence": 9.39404773712158,
+                "tag": {
+                  "en": "lifestyle"
+                }
+              },
+              {
+                "confidence": 9.25594329833984,
+                "tag": {
+                  "en": "black"
+                }
+              },
+              {
+                "confidence": 8.78010654449463,
+                "tag": {
+                  "en": "school"
+                }
+              },
+              {
+                "confidence": 8.73278331756592,
+                "tag": {
+                  "en": "cash machine"
+                }
+              },
+              {
+                "confidence": 8.55793285369873,
+                "tag": {
+                  "en": "door"
+                }
+              },
+              {
+                "confidence": 8.55539512634277,
+                "tag": {
+                  "en": "construction"
+                }
+              },
+              {
+                "confidence": 8.47282981872559,
+                "tag": {
+                  "en": "casual"
+                }
+              },
+              {
+                "confidence": 8.39469623565674,
+                "tag": {
+                  "en": "pretty"
+                }
+              },
+              {
+                "confidence": 8.35915565490723,
+                "tag": {
+                  "en": "bookshop"
+                }
+              },
+              {
+                "confidence": 8.30259895324707,
+                "tag": {
+                  "en": "child"
+                }
+              },
+              {
+                "confidence": 7.77535390853882,
+                "tag": {
+                  "en": "model"
+                }
+              },
+              {
+                "confidence": 7.7592978477478,
+                "tag": {
+                  "en": "blackboard"
+                }
+              },
+              {
+                "confidence": 7.73145055770874,
+                "tag": {
+                  "en": "corporate"
+                }
+              },
+              {
+                "confidence": 7.69390916824341,
+                "tag": {
+                  "en": "attractive"
+                }
+              },
+              {
+                "confidence": 7.39499282836914,
+                "tag": {
+                  "en": "billboard"
+                }
+              },
+              {
+                "confidence": 7.37253665924072,
+                "tag": {
+                  "en": "retro"
+                }
+              },
+              {
+                "confidence": 7.37188673019409,
+                "tag": {
+                  "en": "exterior"
+                }
+              },
+              {
+                "confidence": 7.36667680740356,
+                "tag": {
+                  "en": "device"
+                }
+              },
+              {
+                "confidence": 7.30489635467529,
+                "tag": {
+                  "en": "alone"
+                }
+              },
+              {
+                "confidence": 7.2394118309021,
+                "tag": {
+                  "en": "aged"
+                }
+              },
+              {
+                "confidence": 7.07689905166626,
+                "tag": {
+                  "en": "job"
+                }
+              },
+              {
+                "confidence": 7.04190540313721,
+                "tag": {
+                  "en": "travel"
+                }
+              },
+              {
+                "confidence": 7.03761577606201,
+                "tag": {
+                  "en": "office"
+                }
+              },
+              {
+                "confidence": 7.0295934677124,
+                "tag": {
+                  "en": "architecture"
+                }
+              }
+            ]
+          },
+          "status": {
+            "text": "",
+            "type": "success"
+          }
+        }
+      },
+      {
+        "json": {
+          "result": {
+            "text": [
+              {
+                "coordinates": {
+                  "height": 81,
+                  "width": 604,
+                  "xmax": 726,
+                  "xmin": 122,
+                  "ymax": 175,
+                  "ymin": 94
+                },
+                "data": "LADEZONE"
+              }
+            ]
+          },
+          "status": {
+            "text": "",
+            "type": "success"
+          }
+        }
+      },
+      {
+        "json": {
+          "result": {
+            "faces": [
+              {
+                "attributes": [],
+                "confidence": 99.9996337890625,
+                "coordinates": {
+                  "height": 501,
+                  "width": 501,
+                  "xmax": 1662,
+                  "xmin": 1161,
+                  "ymax": 2024,
+                  "ymin": 1523
+                },
+                "face_id": "",
+                "landmarks": []
+              }
+            ]
+          },
+          "status": {
+            "text": "",
+            "type": "success"
+          }
+        }
+      }
+    ],
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "image_url": "https://fastly.picsum.photos/id/962/536/354.jpg?hmac=EkOEf3fR11Y3KOWT81hl8NkkGHAL26Wp6IzIFkDOH9g",
+          "run_id": "233",
+          "run_ts": "2025-10-23T10:14:56.386Z",
+          "SPREADSHEET_ID": "1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk"
+        }
+      }
+    ],
+    "Get Faces from Imagga API": [
+      {
+        "json": {
+          "result": {
+            "faces": [
+              {
+                "attributes": [],
+                "confidence": 99.9996337890625,
+                "coordinates": {
+                  "height": 501,
+                  "width": 501,
+                  "xmax": 1662,
+                  "xmin": 1161,
+                  "ymax": 2024,
+                  "ymin": 1523
+                },
+                "face_id": "",
+                "landmarks": []
+              }
+            ]
+          },
+          "status": {
+            "text": "",
+            "type": "success"
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Context - Analysis Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context - Analysis Params": {
+      "main": [
+        [
+          {
+            "node": "Get Objects from Imagga API",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Text from Imagga API",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Faces from Imagga API",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Colors from Imagga API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Objects from Imagga API": {
+      "main": [
+        [
+          {
+            "node": "Merge Iamge Analysis Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Colors from Imagga API": {
+      "main": [
+        [
+          {
+            "node": "Merge Iamge Analysis Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Text from Imagga API": {
+      "main": [
+        [
+          {
+            "node": "Merge Iamge Analysis Data",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge Iamge Analysis Data": {
+      "main": [
+        [
+          {
+            "node": "Prepare Image Analysis Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Image Analysis Data": {
+      "main": [
+        [
+          {
+            "node": "Add Row to image_analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Faces from Imagga API": {
+      "main": [
+        [
+          {
+            "node": "Merge Iamge Analysis Data",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "timezone": "Asia/Jerusalem",
+    "executionTimeout": 600
+  },
+  "versionId": "7af23a2d-4a1b-467d-a81c-9a9d47f21074",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b19df818dc6d5d93143869816ee7d272a575db9ee303f5834081147be1ff09b8"
+  },
+  "id": "2EagGVZMb35GdA4z",
+  "tags": []
+}

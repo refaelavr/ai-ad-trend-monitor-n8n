@@ -1,0 +1,1684 @@
+{
+  "name": "MAIN Weekly Trends",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtHour": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -480,
+        32
+      ],
+      "id": "cd310d36-340d-481d-bfd9-14ac7ec7b6ed",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "23f42c75-1826-423f-b43d-49a6c6470b0a",
+              "name": "SPREADSHEET_ID",
+              "value": "YOUR_SPREADSHEET_ID_HERE",
+              "type": "string"
+            },
+            {
+              "id": "dbc9763b-5be5-4d47-95b4-5af03dbd1366",
+              "name": "week_start",
+              "value": "={{ new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }}",
+              "type": "object"
+            },
+            {
+              "id": "1b06bb09-84be-44eb-a57e-c676fd7bb53a",
+              "name": "week_end",
+              "value": "={{ new Date() }}",
+              "type": "object"
+            },
+            {
+              "id": "402baab0-16ff-42f3-9e09-93a5837d860f",
+              "name": "email_from",
+              "value": "your-email@example.com",
+              "type": "string"
+            },
+            {
+              "id": "93714c11-c67f-4e5f-a830-337b11ddc0d7",
+              "name": "email_to",
+              "value": "your-email@example.com",
+              "type": "string"
+            },
+            {
+              "id": "ed56635e-a56f-443c-b2b1-aacf13dcd06f",
+              "name": "RUN_TYPE",
+              "value": "weekly",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -256,
+        32
+      ],
+      "id": "09c3a130-48b4-45ef-9a58-887590e1d213",
+      "name": "Context Params"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Context Params').item.json.SPREADSHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2105146243,
+          "mode": "list",
+          "cachedResultName": "image_analysis",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=2105146243"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        640,
+        32
+      ],
+      "id": "01be7106-c9a6-4809-9709-928aca5aa094",
+      "name": "Read All Existing Ads",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c66a8773-2b6a-4fac-9f73-2eb7c9eecc15",
+              "leftValue": "={{ $json.analyzed_ts }}",
+              "rightValue": "={{ $('Context Params').item.json.week_start }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "afterOrEquals"
+              }
+            },
+            {
+              "id": "9e15dc5f-5557-4243-8c56-1f0926f0711f",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        864,
+        32
+      ],
+      "id": "266c0a00-5247-4689-aa52-0d1f6ac30dac",
+      "name": "Filter Last Week Ads",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Context Params').first().json.SPREADSHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1295893590,
+          "mode": "list",
+          "cachedResultName": "weekly_trends",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=1295893590"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "week_start"
+          ],
+          "schema": [
+            {
+              "id": "week_start",
+              "displayName": "week_start",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "week_end",
+              "displayName": "week_end",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "total_images",
+              "displayName": "total_images",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "images_with_faces",
+              "displayName": "images_with_faces",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "face_percentage",
+              "displayName": "face_percentage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "top_color_1",
+              "displayName": "top_color_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "top_color_2",
+              "displayName": "top_color_2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "top_color_3",
+              "displayName": "top_color_3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "top_color_pairs",
+              "displayName": "top_color_pairs",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "top_color_triplets",
+              "displayName": "top_color_triplets",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "top_characters",
+              "displayName": "top_characters",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "top_objects",
+              "displayName": "top_objects",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1536,
+        -64
+      ],
+      "id": "ec73cf29-cee0-4caf-845d-1e36b2694ae4",
+      "name": "Save to trends Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Context Params').first().json.email_from }}",
+        "toEmail": "={{ $('Context Params').first().json.email_to }}",
+        "subject": "={{ $json.subject }}",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2432,
+        -64
+      ],
+      "id": "5995be79-1c0a-4ffd-9b51-ee6feae66f16",
+      "name": "Send email",
+      "webhookId": "c8e97a9b-9438-48d5-af4f-e9dd5d4cb25e",
+      "executeOnce": true,
+      "credentials": {
+        "smtp": {
+          "id": "Q34Pkt8Iza224nM6",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const trends = $('Find Trends').first().json;\nconst allGeneratedAds = $('Generate Guardio Ads').all(); // כל 3 המודעות\n\n// Extract data from all generated ads\nconst images = allGeneratedAds.map(item => ({\n  file_name: item.json.file_name,\n  drive_url: item.json.drive_url,\n  drive_file_id: item.json.drive_file_id,\n  variation: item.json.variation\n}));\n\nconst totalImages = trends.total_images || 0;\nconst topColor = trends.top_color_1 || '#000000';\nconst topCharacters = (trends.top_characters || '').split(',').slice(0, 3).join(', ');\nconst topObjects = (trends.top_objects || '').split(',').slice(0, 3).join(', ');\nconst adsGenerated = images.length; // 3\n\n// Build HTML\nconst html = `<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body {\n      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;\n      background-color: #f5f5f5;\n      padding: 20px;\n    }\n    .container {\n      max-width: 600px;\n      margin: 0 auto;\n      background: white;\n      border-radius: 8px;\n      box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n      overflow: hidden;\n    }\n    .header {\n      background: #8b5cf6;\n      color: white;\n      padding: 20px;\n      text-align: center;\n    }\n    .header h1 {\n      margin: 0;\n      font-size: 24px;\n    }\n    .content {\n      padding: 20px;\n      color: #1f2937;\n    }\n    table {\n      width: 100%;\n      border-collapse: collapse;\n      margin: 20px 0;\n    }\n    th {\n      background: #f3f4f6;\n      padding: 12px;\n      text-align: left;\n      font-weight: 600;\n      color: #374151;\n      border-bottom: 2px solid #e5e7eb;\n    }\n    td {\n      padding: 12px;\n      border-bottom: 1px solid #e5e7eb;\n      color: #1f2937;\n    }\n    .color-box {\n      display: inline-block;\n      width: 20px;\n      height: 20px;\n      border-radius: 4px;\n      vertical-align: middle;\n      margin-right: 8px;\n      border: 1px solid #e5e7eb;\n    }\n    .footer {\n      text-align: center;\n      padding: 20px;\n      color: #6b7280;\n      font-size: 12px;\n    }\n    .badge {\n      display: inline-block;\n      padding: 4px 12px;\n      border-radius: 12px;\n      font-size: 12px;\n      font-weight: 600;\n    }\n    .badge-success {\n      background: #dcfce7;\n      color: #166534;\n    }\n    .badge-purple {\n      background: #ede9fe;\n      color: #6b21a8;\n    }\n    .image-grid {\n      display: grid;\n      grid-template-columns: repeat(3, 1fr);\n      gap: 10px;\n      margin: 20px 0;\n    }\n    .image-card {\n      text-align: center;\n      padding: 10px;\n      background: #f9fafb;\n      border-radius: 6px;\n      border: 1px solid #e5e7eb;\n    }\n    .image-card a {\n      color: #3b82f6;\n      text-decoration: none;\n      font-size: 12px;\n      font-weight: 500;\n    }\n    .image-card .variation {\n      font-size: 18px;\n      font-weight: 700;\n      color: #8b5cf6;\n      margin-bottom: 5px;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Weekly Trends Analysis Complete</h1>\n    </div>\n    \n    <div class=\"content\">\n      <p><strong>The weekly trends workflow finished successfully!</strong></p>\n      <p>Analysis period: ${new Date(trends.week_start).toLocaleDateString()} - ${new Date(trends.week_end).toLocaleDateString()}</p>\n      \n      <table>\n        <tr>\n          <th>Metric</th>\n          <th>Value</th>\n        </tr>\n        <tr>\n          <td><strong>Images Analyzed</strong></td>\n          <td>${totalImages}</td>\n        </tr>\n        <tr>\n          <td><strong>Execution ID</strong></td>\n          <td>${$execution.id}</td>\n        </tr>\n          <td><strong>Top Color</strong></td>\n          <td>\n            <span class=\"color-box\" style=\"background-color: ${topColor};\"></span>\n            ${topColor}\n          </td>\n        </tr>\n        <tr>\n          <td><strong>Top Characters</strong></td>\n          <td>${topCharacters || 'None'}</td>\n        </tr>\n        <tr>\n          <td><strong>Top Objects</strong></td>\n          <td>${topObjects || 'None'}</td>\n        </tr>\n        <tr>\n          <td><strong>Ads Generated</strong></td>\n          <td><span class=\"badge badge-success\">${adsGenerated} images</span></td>\n        </tr>\n      </table>\n\n      <h3 style=\"color: #374151; margin-top: 24px;\">Generated Guardio Ads:</h3>\n      <div class=\"image-grid\">\n        ${images.map(img => `\n          <div class=\"image-card\">\n            <div class=\"variation\">V${img.variation}</div>\n            <a href=\"${img.drive_url}\" target=\"_blank\">View in Drive</a>\n          </div>\n        `).join('')}\n      </div>\n      \n      <table style=\"margin-top: 20px;\">\n        <tr>\n          <th>File Name</th>\n          <th>Action</th>\n        </tr>\n        ${images.map(img => `\n          <tr>\n            <td>${img.file_name}</td>\n            <td><a href=\"${img.drive_url}\" target=\"_blank\" style=\"color: #3b82f6; text-decoration: none;\">Open</a></td>\n          </tr>\n        `).join('')}\n      </table>\n      \n      <p style=\"text-align: center; margin-top: 24px;\">\n        <a href=\"http://localhost:5678/workflow/${$workflow.id}/executions/${$execution.id}\"\n           style=\"display:inline-block;\n                  background-color:#8b5cf6;\n                  color:#ffffff !important;\n                  font-weight:600;\n                  text-decoration:none;\n                  padding:12px 24px;\n                  border-radius:6px;\n                  font-family:Arial,Helvetica,sans-serif;\n                  text-align:center;\">\n          View Workflow in n8n\n        </a>\n      </p>\n    </div>\n    \n    <div class=\"footer\">\n      <p>This is an automated weekly report from your Ynet Ads Intelligence system.</p>\n      <p><span class=\"badge badge-purple\">Weekly Trends</span></p>\n    </div>\n  </div>\n</body>\n</html>`;\n\nreturn {\n  json: {\n    html: html,\n    subject: `Weekly Trends Complete - ${adsGenerated} Ads Generated`,\n    trends: trends,\n    images: images,\n    adsGenerated: adsGenerated\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2208,
+        -64
+      ],
+      "id": "0e3fb3f8-362e-4924-ab22-7385cd6847c5",
+      "name": "Prepare Success Email"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "dSkfEyqyBWyin2nW",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/dSkfEyqyBWyin2nW",
+          "cachedResultName": "SUB Generate Guardio Ads"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "top_color_1": "={{ $('Save to trends Sheet').item.json.top_color_1 }}",
+            "top_color_2": "={{ $('Save to trends Sheet').item.json.top_color_2 }}",
+            "top_color_3": "={{ $('Save to trends Sheet').item.json.top_color_3 }}",
+            "top_characters": "={{ $('Save to trends Sheet').item.json.top_characters }}",
+            "top_objects": "={{ $('Save to trends Sheet').item.json.top_objects }}",
+            "run_id": "={{ $execution.id }}",
+            "SPREADSHEET_ID": "={{ $('Context Params').first().json.SPREADSHEET_ID }}",
+            "week_start": "={{ $('Save to trends Sheet').item.json.week_start }}",
+            "week_end": "={{ $('Save to trends Sheet').item.json.week_end }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "top_color_1",
+              "displayName": "top_color_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "top_color_2",
+              "displayName": "top_color_2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "top_color_3",
+              "displayName": "top_color_3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "top_characters",
+              "displayName": "top_characters",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "top_objects",
+              "displayName": "top_objects",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "SPREADSHEET_ID",
+              "displayName": "SPREADSHEET_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "week_start",
+              "displayName": "week_start",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "week_end",
+              "displayName": "week_end",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1984,
+        -64
+      ],
+      "id": "ee6d2a29-b345-47c3-93a5-7a0e308b4491",
+      "name": "Generate Guardio Ads"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Context Params').item.json.SPREADSHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1911291529,
+          "mode": "list",
+          "cachedResultName": "execution_logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=1911291529"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $json.run_id }}",
+            "execution_id": "={{ $execution.id }}",
+            "execution_url": "={{ $json.execution_url }}",
+            "run_type": "weekly",
+            "status": "new",
+            "started_at": "={{ $now.toISO() }}",
+            "updated_at": "={{ $now.toISO() }}",
+            "step_name": "Initialized"
+          },
+          "matchingColumns": [
+            "run_id"
+          ],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_url",
+              "displayName": "execution_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "run_type",
+              "displayName": "run_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "started_at",
+              "displayName": "started_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "completed_at",
+              "displayName": "completed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "step_name",
+              "displayName": "step_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        192,
+        32
+      ],
+      "id": "0ea57c75-1866-4f7e-8942-d24cbac43938",
+      "name": "Create New run_status",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate UUID\nfunction generateUUID() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nconst context = $input.first().json;\nconst runType = context.RUN_TYPE || 'daily';\nconst uuid = generateUUID().slice(0, 8);\nconst date = new Date().toISOString().split('T')[0];\nconst runId = `${runType}-${date}-${uuid}`;\n\nconst executionId = $execution.id;\nconst workflowId = $workflow.id;\nconst executionUrl = `http://localhost:5678/workflow/${workflowId}/executions/${executionId}`;\n\nconsole.log('=== New Run Initialized ===');\nconsole.log('Run ID:', runId);\nconsole.log('Execution ID:', executionId);\nconsole.log('Type:', runType);\n\nreturn {\n  json: {\n    run_id: runId,\n    execution_id: executionId,\n    execution_url: executionUrl,\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        32
+      ],
+      "id": "5c3360ad-491d-4b41-86d3-b8dc3e6ad3a8",
+      "name": "Create Run ID"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Context Params').item.json.SPREADSHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1911291529,
+          "mode": "list",
+          "cachedResultName": "execution_logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=1911291529"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $json.run_id }}",
+            "status": "in_progress",
+            "step_name": "Fetching new ads data",
+            "updated_at": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "run_id"
+          ],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "execution_url",
+              "displayName": "execution_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "run_type",
+              "displayName": "run_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "started_at",
+              "displayName": "started_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "completed_at",
+              "displayName": "completed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "step_name",
+              "displayName": "step_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        32
+      ],
+      "id": "9ecc49d5-cea2-411b-af71-e4c7ee4575ee",
+      "name": "Update Status to in_progress",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Context Params').first().json.SPREADSHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1911291529,
+          "mode": "list",
+          "cachedResultName": "execution_logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=1911291529"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $('Create Run ID').first().json.run_id }}",
+            "status": "generating_ads",
+            "updated_at": "={{ $now.toISO() }}",
+            "step_name": "Generating Guardio ads"
+          },
+          "matchingColumns": [
+            "run_id"
+          ],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "execution_url",
+              "displayName": "execution_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "run_type",
+              "displayName": "run_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "started_at",
+              "displayName": "started_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "completed_at",
+              "displayName": "completed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "step_name",
+              "displayName": "step_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1760,
+        -64
+      ],
+      "id": "b341317c-2275-4fb6-8aef-f5fa0226079a",
+      "name": "Update Status to generating_ads",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Context Params').first().json.SPREADSHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1911291529,
+          "mode": "list",
+          "cachedResultName": "execution_logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=1911291529"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $('Create Run ID').first().json.run_id }}",
+            "updated_at": "={{ $now.toISO() }}",
+            "status": "success",
+            "completed_at": "={{ $now.toISO() }}",
+            "step_name": "Completed successfully"
+          },
+          "matchingColumns": [
+            "run_id"
+          ],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_url",
+              "displayName": "execution_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "run_type",
+              "displayName": "run_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "started_at",
+              "displayName": "started_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "completed_at",
+              "displayName": "completed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "step_name",
+              "displayName": "step_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2656,
+        -64
+      ],
+      "id": "e7970515-3863-450e-85d2-e903321a580a",
+      "name": "Update Status to success",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ede1958a-348b-48cf-94f3-ab47705354aa",
+              "leftValue": "={{ $input.all().length > 0 && Object.keys($input.first().json).length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1088,
+        32
+      ],
+      "id": "937da816-3f47-490c-a4dd-9af9d2f0a62a",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Context Params').first().json.SPREADSHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1911291529,
+          "mode": "list",
+          "cachedResultName": "execution_logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=1911291529"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $('Create Run ID').first().json.run_id }}",
+            "updated_at": "={{ $now.toISO() }}",
+            "status": "business_error",
+            "completed_at": "={{ $now.toISO() }}",
+            "step_name": "No new ads found",
+            "error_message": "No ads found in the last 7 days or all had errors"
+          },
+          "matchingColumns": [
+            "run_id"
+          ],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_url",
+              "displayName": "execution_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "run_type",
+              "displayName": "run_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "started_at",
+              "displayName": "started_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "completed_at",
+              "displayName": "completed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "step_name",
+              "displayName": "step_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1312,
+        128
+      ],
+      "id": "3e064841-8044-4048-8d04-bb68d4c50e74",
+      "name": "Update Status to success - no new ads",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const runData = $('Create Run ID').first().json;\nconst errorData = $input.first().json.error_message;\n\nconst html = `<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body {\n      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;\n      background-color: #f5f5f5;\n      padding: 20px;\n    }\n    .container {\n      max-width: 600px;\n      margin: 0 auto;\n      background: white;\n      border-radius: 8px;\n      box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n      overflow: hidden;\n    }\n    .header {\n      background: #f59e0b;\n      color: white;\n      padding: 20px;\n      text-align: center;\n    }\n    .header h1 {\n      margin: 0;\n      font-size: 24px;\n    }\n    .content {\n      padding: 20px;\n      color: #1f2937;\n    }\n    .warning-box {\n      background: #fef3c7;\n      border-left: 4px solid #f59e0b;\n      padding: 15px;\n      margin: 20px 0;\n      border-radius: 4px;\n    }\n    table {\n      width: 100%;\n      border-collapse: collapse;\n      margin: 20px 0;\n    }\n    th {\n      background: #f3f4f6;\n      padding: 12px;\n      text-align: left;\n      font-weight: 600;\n      color: #374151;\n      border-bottom: 2px solid #e5e7eb;\n    }\n    td {\n      padding: 12px;\n      border-bottom: 1px solid #e5e7eb;\n      color: #1f2937;\n    }\n    .badge {\n      display: inline-block;\n      padding: 4px 12px;\n      border-radius: 12px;\n      font-size: 12px;\n      font-weight: 600;\n      background: #fef3c7;\n      color: #92400e;\n    }\n    .footer {\n      text-align: center;\n      padding: 20px;\n      color: #6b7280;\n      font-size: 12px;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Weekly Trends - No New Ads</h1>\n    </div>\n    \n    <div class=\"content\">\n      <p><strong>The weekly trends workflow completed with no ads to process.</strong></p>\n      \n      <div class=\"warning-box\">\n        <strong>Notice:</strong> ${errorData}\n      </div>\n\n      <table>\n        <tr>\n          <th>Detail</th>\n          <th>Value</th>\n        </tr>\n        <tr>\n          <td><strong>Run ID</strong></td>\n          <td>${runData.run_id}</td>\n        </tr>\n        <tr>\n          <td><strong>Execution ID</strong></td>\n          <td>${runData.execution_id}</td>\n        </tr>\n        <tr>\n          <td><strong>Status</strong></td>\n          <td><span class=\"badge\">BUSINESS ERROR</span></td>\n        </tr>\n        <tr>\n          <td><strong>Reason</strong></td>\n          <td>No ads found in the last 7 days or all had errors</td>\n        </tr>\n        <tr>\n          <td><strong>Completed At</strong></td>\n          <td>${new Date($input.first().json.completed_at).toLocaleString()}</td>\n        </tr>\n      </table>\n\n      <p style=\"color: #6b7280; font-size: 14px; margin-top: 20px;\">\n        <strong>This is not a technical failure.</strong> The workflow executed successfully but found no ads to analyze. This can happen when:\n      </p>\n      <ul style=\"color: #6b7280; font-size: 14px;\">\n        <li>No new ads were scraped in the last 7 days</li>\n        <li>All recent ads had analysis errors</li>\n        <li>The daily scraper hasn't run recently</li>\n      </ul>\n      \n      <p style=\"text-align: center; margin-top: 24px;\">\n        <a href=\"${runData.execution_url}\"\n           style=\"display:inline-block;\n                  background-color:#f59e0b;\n                  color:#ffffff !important;\n                  font-weight:600;\n                  text-decoration:none;\n                  padding:12px 24px;\n                  border-radius:6px;\n                  font-family:Arial,Helvetica,sans-serif;\n                  text-align:center;\">\n          View Execution in n8n\n        </a>\n      </p>\n    </div>\n    \n    <div class=\"footer\">\n      <p>This is an automated notification from your Ads Intelligence system.</p>\n      <p><span class=\"badge\">Weekly Trends - Business Error</span></p>\n    </div>\n  </div>\n</body>\n</html>`;\n\nreturn {\n  json: {\n    html: html,\n    subject: `Weekly Trends - No Ads Found`\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1536,
+        128
+      ],
+      "id": "539597b0-5a20-4631-8cec-e26274a3887c",
+      "name": "Prepare Error Email"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Context Params').first().json.email_from }}",
+        "toEmail": "={{ $('Context Params').first().json.email_to }}",
+        "subject": "={{ $json.subject }}",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1760,
+        128
+      ],
+      "id": "59cc8e7c-2bff-440a-b9b7-fc81aa65a0d1",
+      "name": "Send error email",
+      "webhookId": "c8e97a9b-9438-48d5-af4f-e9dd5d4cb25e",
+      "executeOnce": true,
+      "credentials": {
+        "smtp": {
+          "id": "Q34Pkt8Iza224nM6",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## MAIN Weekly Trends\n\nPURPOSE:\n- Analyzes last 7 days of ads\n- Finds trending colors, characters, objects\n- Generates 3 Guardio ads with AI\n\nSCHEDULE: Sunday at 10:00 AM\nDURATION: ~5-10 minutes\nOUTPUTS: trends sheet, 3 PNG ads in Drive",
+        "height": 256,
+        "width": 400,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -880,
+        -336
+      ],
+      "typeVersion": 1,
+      "id": "818407b5-6323-4034-81ad-54341d320258",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Context Params Required\n\n- SPREADSHEET_ID\n- week_start (auto-calculated)\n- week_end (auto-calculated)\n- email_from / email_to\n\nAUTO-CALCULATED:\n- week_start = now - 7 days\n- week_end = now",
+        "height": 256,
+        "width": 400,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -448,
+        -336
+      ],
+      "typeVersion": 1,
+      "id": "8a36f415-001e-4645-98a6-a4918d6951eb",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## No Ads Found\n\nIF Filter returns empty:\n- Status → \"business_error\"\n- Email sent (orange theme)\n- Workflow stops gracefully\n- Normal if no ads scraped this week\n- Or all ads had analysis errors",
+        "height": 256,
+        "width": 352,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1232,
+        304
+      ],
+      "typeVersion": 1,
+      "id": "d42194b2-3861-4e45-99f2-a22cacc62818",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Trend Analysis\n\nTOP 3 COLORS:\n- Most frequent hex codes\n\nTOP 10 CHARACTERS:\n- Most common descriptors\n- (smiling, professional, etc.)\n\nTOP 10 OBJECTS:\n- Most detected items\n- (laptop, sky, landscape, etc.)\n\nFACE PERCENTAGE:\n- % of ads with faces",
+        "height": 352,
+        "width": 384,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1232,
+        -448
+      ],
+      "typeVersion": 1,
+      "id": "5a3b3ee0-584c-4a66-b613-a79af705fea6",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Helper functions ---\nfunction splitList(v) {\n  if (!v) return [];\n  if (Array.isArray(v)) return v.map(x => String(x).trim()).filter(Boolean);\n  return String(v).split(',').map(s => s.trim()).filter(Boolean);\n}\n\nfunction tally(list, dict) {\n  for (const x of list) {\n    const key = x.toLowerCase();\n    dict[key] = (dict[key] || 0) + 1;\n  }\n}\n\nfunction topN(dict, n) {\n  return Object.entries(dict)\n    .sort((a, b) => b[1] - a[1])\n    .slice(0, n)\n    .map(([k]) => k);\n}\n\n// --- Input ---\nconst rows = $input.all().map(i => i.json);\n\n// --- Counters ---\nconst colorCount = {};\nconst pairCount = {};\nconst tripletCount = {};\nconst characterCount = {};\nconst objectCount = {};\nlet totalRows = 0;\nlet faceCount = 0;\n\nconst HEX_RE = /^#[0-9a-f]{6}$/i;\n\n// --- Aggregation ---\nfor (const d of rows) {\n  totalRows++;\n\n  const c1 = d.palette_1;\n  const c2 = d.palette_2;\n  const c3 = d.palette_3;\n\n  // Count single colors\n  for (const c of [c1, c2, c3]) {\n    if (c && HEX_RE.test(String(c))) {\n      tally([c], colorCount);\n    }\n  }\n\n  // Count pairs\n  if (c1 && c2 && HEX_RE.test(c1) && HEX_RE.test(c2)) {\n    const key = `${c1}, ${c2}`;\n    tally([key], pairCount);\n  }\n\n  // Count triplets\n  if (c1 && c2 && c3 && HEX_RE.test(c1) && HEX_RE.test(c2) && HEX_RE.test(c3)) {\n    const key = `${c1}, ${c2}, ${c3}`;\n    tally([key], tripletCount);\n  }\n\n  // Count characters\n  const chars = splitList(d.characters);\n  tally(chars, characterCount);\n\n  // Count objects\n  const objs = splitList(d.objects);\n  tally(objs, objectCount);\n\n  // Count faces\n  if (d.has_face === true) {\n    faceCount++;\n  }\n}\n\n// --- Compute Top Results ---\nconst topColors = topN(colorCount, 3);\nconst topPairs = topN(pairCount, 3);\nconst topTriplets = topN(tripletCount, 3);\nconst topCharacters = topN(characterCount, 10);\nconst topObjects = topN(objectCount, 10);\n\nconsole.log('=== Weekly Trends Calculation ===');\nconsole.log('Total images analyzed:', totalRows);\nconsole.log('Images with faces:', faceCount, `(${(faceCount/totalRows*100).toFixed(1)}%)`);\nconsole.log('Top color:', topColors[0]);\nconsole.log('Top characters:', topCharacters.slice(0, 3).join(', '));\nconsole.log('Top objects:', topObjects.slice(0, 3).join(', '));\n\n// --- Output summary row ---\nconst summary = {\n  week_start: $('Context Params').first().json.week_start,\n  week_end: $('Context Params').first().json.week_end,\n  total_images: totalRows,\n  images_with_faces: faceCount,\n  face_percentage: totalRows > 0 ? (faceCount / totalRows * 100).toFixed(1) + '%' : '0%',\n  top_color_1: topColors[0] || null,\n  top_color_2: topColors[1] || null,\n  top_color_3: topColors[2] || null,\n  top_color_pairs: topPairs.join(' | ') || null,\n  top_color_triplets: topTriplets.join(' | ') || null,\n  top_characters: topCharacters.join(', ') || null,\n  top_objects: topObjects.join(', ') || null\n};\n\nreturn [{ json: summary }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        -64
+      ],
+      "id": "de83b9b1-4651-4fb0-a148-2e45a05db6f8",
+      "name": "Find Trends"
+    }
+  ],
+  "pinData": {
+    "Read All Existing Ads": [
+      {
+        "json": {
+          "row_number": 2,
+          "image_url": "https://images.pexels.com/photos/14615199/pexels-photo-14615199.jpeg?_gl=1*13dhtu6*_ga*OTAzODk4OTMyLjE3NjExMTM1ODQ.*_ga_8JE65Q40S6*czE3NjEyMTA3NjEkbzMkZzEkdDE3NjEyMTA4MjYkajU5JGwwJGgw",
+          "analyzed_ts": "2025-10-25T16:05:37.945-04:00",
+          "palette_1": "#323232",
+          "palette_2": "#4b4b4b",
+          "palette_3": "#2b2b2b",
+          "characters": "man, adult, business, old, vintage, portrait, smiling, student, professional, boy",
+          "objects": "book jacket, jacket, wrapping, covering, people, wall, sign, male, person, building",
+          "has_face": true,
+          "extracted_text": "LADEZONE",
+          "error": ""
+        }
+      },
+      {
+        "json": {
+          "row_number": 3,
+          "image_url": "https://fastly.picsum.photos/id/962/536/354.jpg?hmac=EkOEf3fR11Y3KOWT81hl8NkkGHAL26Wp6IzIFkDOH9g",
+          "analyzed_ts": "2025-10-25T16:05:49.684-04:00",
+          "palette_1": "#414045",
+          "palette_2": "#b5aca4",
+          "palette_3": "",
+          "characters": "colorful, romantic, outdoor",
+          "objects": "ocean, sea, body of water, shoreline, water, sunset, sky, sun, landscape, beach",
+          "has_face": false,
+          "extracted_text": false,
+          "error": ""
+        }
+      },
+      {
+        "json": {
+          "row_number": 4,
+          "image_url": "https://fastly.picsum.photos/id/866/536/354.jpg?hmac=tGofDTV7tl2rprappPzKFiZ9vDh5MKj39oa2D--gqhA",
+          "analyzed_ts": "2025-10-25T16:05:57.716-04:00",
+          "palette_1": "#cfb8be",
+          "palette_2": "#324664",
+          "palette_3": "",
+          "characters": "outdoor, sport",
+          "objects": "glacier, mountain, snow, peak, mountains, landscape, alp, range, ice, sky",
+          "has_face": false,
+          "extracted_text": false,
+          "error": ""
+        }
+      }
+    ],
+    "Generate Guardio Ads": [
+      {
+        "json": {
+          "run_id": "757",
+          "week_start": "2025-10-18T22:21:53.409Z",
+          "week_end": "2025-10-25T22:21:53.409Z",
+          "variation": 1,
+          "style": "professional",
+          "prompt_text": "Stable Diffusion prompt for a 300x250 horizontal banner ad for Guardio in a professional corporate style. An adult male professional in a dark jacket stands outdoors on a city street with a clear sky and distant landscape. Dominant grayscale palette using trending colors: primary #323232 for background panels, secondary #4b4b4b for shapes, and accent #2b2b2b for text. The left side features the man in front of a clean gray wall with a wall sign reading Secure Browsing in muted gray. A prominent Guardio branding area sits in the top-left with a bold Guardio wordmark and a shield icon. Bottom overlay shows the tagline Real-time protection from phishing, malware and scams. Ensure a 300x250 horizontal banner format with a professional, modern look and legible text overlays.",
+          "top_color_1": "#323232",
+          "top_color_2": "#4b4b4b",
+          "top_color_3": "#2b2b2b",
+          "top_characters": "outdoor, man, adult, business, old, vintage, portrait, smiling, student, professional",
+          "top_objects": "sky, landscape, book jacket, jacket, wrapping, covering, people, wall, sign, male",
+          "file_name": "guardio-ad-757-v1.png",
+          "drive_file_id": "1uIgRredz6-8ajmj-i3foUfIZ5Jg-X7fs",
+          "drive_url": "https://drive.google.com/file/d/1uIgRredz6-8ajmj-i3foUfIZ5Jg-X7fs/view?usp=drivesdk",
+          "generated_at": "2025-10-25T22:23:06.684Z",
+          "ai_model": "gpt-5-nano"
+        }
+      },
+      {
+        "json": {
+          "run_id": "757",
+          "week_start": "2025-10-18T22:21:53.409Z",
+          "week_end": "2025-10-25T22:21:53.409Z",
+          "variation": 2,
+          "style": "tech",
+          "prompt_text": "Stable Diffusion prompt for a 300x250 horizontal banner for Guardio with a tech-forward futuristic look. A smiling adult male in a sleek dark jacket stands beside a glass wall with holographic UI elements and floating data blocks. Dominant grayscale palette using #323232, #4b4b4b, #2b2b2b with subtle cool glow. Top-left features a modern Guardio branding area with a wordmark and shield icon. Background includes a sky gradient and a distant skyline to convey a futuristic vibe; a digital sign near the subject reads Phishing Shield in muted gray. Bottom overlay text Real-time protection from phishing, malware and scams. Ensure 300x250 horizontal canvas, compact and sleek, with clear text overlays.",
+          "top_color_1": "#323232",
+          "top_color_2": "#4b4b4b",
+          "top_color_3": "#2b2b2b",
+          "top_characters": "outdoor, man, adult, business, old, vintage, portrait, smiling, student, professional",
+          "top_objects": "sky, landscape, book jacket, jacket, wrapping, covering, people, wall, sign, male",
+          "file_name": "guardio-ad-757-v2.png",
+          "drive_file_id": "1gLKPTq2DigkTkpPNOPH8d_xcFB6GcXR3",
+          "drive_url": "https://drive.google.com/file/d/1gLKPTq2DigkTkpPNOPH8d_xcFB6GcXR3/view?usp=drivesdk",
+          "generated_at": "2025-10-25T22:23:27.783Z",
+          "ai_model": "gpt-5-nano"
+        }
+      },
+      {
+        "json": {
+          "run_id": "757",
+          "week_start": "2025-10-18T22:21:53.409Z",
+          "week_end": "2025-10-25T22:21:53.409Z",
+          "variation": 3,
+          "style": "friendly",
+          "prompt_text": "Stable Diffusion prompt for a 300x250 horizontal banner for Guardio in a friendly approachable style. Outdoor scene with an adult man in a casual jacket, smiling, leaning against a light gray wall under a bright sky. Dominant grayscale palette uses #323232, #4b4b4b, #2b2b2b. Include a book jacket style panel on the side and a small sign bearing the Guardio branding. Add a wrapping motif around the subject to symbolize protection. Bottom overlay text Real-time protection from phishing, malware and scams. Top-left includes the Guardio logo. 300x250 horizontal banner, warm, accessible vibe with clear text overlays.",
+          "top_color_1": "#323232",
+          "top_color_2": "#4b4b4b",
+          "top_color_3": "#2b2b2b",
+          "top_characters": "outdoor, man, adult, business, old, vintage, portrait, smiling, student, professional",
+          "top_objects": "sky, landscape, book jacket, jacket, wrapping, covering, people, wall, sign, male",
+          "file_name": "guardio-ad-757-v3.png",
+          "drive_file_id": "1kG8ZoLXeNYkX8N5csN_Vv-_Wi4n8bKx_",
+          "drive_url": "https://drive.google.com/file/d/1kG8ZoLXeNYkX8N5csN_Vv-_Wi4n8bKx_/view?usp=drivesdk",
+          "generated_at": "2025-10-25T22:23:53.791Z",
+          "ai_model": "gpt-5-nano"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Context Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Params": {
+      "main": [
+        [
+          {
+            "node": "Create Run ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read All Existing Ads": {
+      "main": [
+        [
+          {
+            "node": "Filter Last Week Ads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Last Week Ads": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to trends Sheet": {
+      "main": [
+        [
+          {
+            "node": "Update Status to generating_ads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Success Email": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        [
+          {
+            "node": "Update Status to success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Guardio Ads": {
+      "main": [
+        [
+          {
+            "node": "Prepare Success Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Run ID": {
+      "main": [
+        [
+          {
+            "node": "Create New run_status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create New run_status": {
+      "main": [
+        [
+          {
+            "node": "Update Status to in_progress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status to in_progress": {
+      "main": [
+        [
+          {
+            "node": "Read All Existing Ads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status to generating_ads": {
+      "main": [
+        [
+          {
+            "node": "Generate Guardio Ads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Find Trends",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status to success - no new ads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status to success - no new ads": {
+      "main": [
+        [
+          {
+            "node": "Prepare Error Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Error Email": {
+      "main": [
+        [
+          {
+            "node": "Send error email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Trends": {
+      "main": [
+        [
+          {
+            "node": "Save to trends Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "a53bGjmYCia6srmV",
+    "timezone": "Asia/Jerusalem",
+    "executionTimeout": 600
+  },
+  "versionId": "01e684f0-3fdd-4dd7-9947-55e273d91f11",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b19df818dc6d5d93143869816ee7d272a575db9ee303f5834081147be1ff09b8"
+  },
+  "id": "pcrXSKQul7KIrdZU",
+  "tags": []
+}

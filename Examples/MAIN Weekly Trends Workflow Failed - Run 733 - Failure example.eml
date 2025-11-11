@@ -1,0 +1,174 @@
+Return-Path: <ravramashvili@gmail.com>
+Received: from [127.0.0.1] ([77.137.76.233])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-475dcbacdc6sm25013385e9.0.2025.10.25.13.52.10
+        for <ravramashvili@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 25 Oct 2025 13:52:10 -0700 (PDT)
+Content-Type: text/html; charset=utf-8
+From: ravramashvili@gmail.com
+To: ravramashvili@gmail.com
+Subject: MAIN Weekly Trends Workflow Failed - Run 733
+Message-ID: <0351c3f5-5f62-1247-701d-910d925c0cac@gmail.com>
+Content-Transfer-Encoding: quoted-printable
+Date: Sat, 25 Oct 2025 20:52:09 +0000
+MIME-Version: 1.0
+
+
+					<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, =
+sans-serif;
+      background-color: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px =
+4px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .header {
+      background: #dc2626;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .content {
+      padding: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th {
+      background: #f3f4f6;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #374151;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+      color: #1f2937;
+    }
+    .error-box {
+      background: #fef2f2;
+      border-left: 4px solid #dc2626;
+      padding: 16px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .error-box code {
+      display: block;
+      background: #fee2e2;
+      padding: 8px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      word-break: break-word;
+      margin-top: 8px;
+    }
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #6b7280;
+      font-size: 12px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-failure {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+  </style>
+</head>
+<body>
+  <div class=3D"container">
+    <div class=3D"header">
+      <h1>Workflow Execution Failed</h1>
+    </div>
+   =20
+    <div class=3D"content">
+      <p><strong>A workflow =
+execution has failed and requires attention.</strong></p>
+     =20
+      <table>
+        <tr>
+          <th>Field</th>
+          <th>Value</th>
+        </tr>
+        <tr>
+          <td><strong>Run ID</strong></td>
+          <td>733</td>
+        </tr>
+        <tr>
+          <td><strong>Timestamp</strong></td>
+          <td>2025-10-25T23:52:09.886+03:00</td>
+        </tr>
+        <tr>
+          <td><strong>Workflow Type</strong></td>
+          <td><span =
+class=3D"badge badge-failure">MAIN Weekly Trends</span></td>
+        </tr>
+        <tr>
+          <td><strong>Status</strong></td>
+          <td><span class=3D"badge badge-failure">FAILURE</span></td>
+        </tr>
+      </table>
+     =20
+      <div class=3D"error-box">
+        <strong>Error Message:</strong>
+        <code>ZeroDivisionError: =
+division by zero
+</code>
+      </div>
+     =20
+        <p =
+style=3D"text-align: center; margin-top: 24px;">
+          <a =
+href=3D"http://localhost:5678/workflow/pcrXSKQul7KIrdZU/executions/733"=20
+             style=3D"display: inline-block; background: #3b82f6; color: =
+white;=20
+                    padding: 12px 24px; text-decoration: none; =
+border-radius: 6px;
+                    font-weight: 600;">
+            View Execution Details
+          </a>
+        </p>
+    </div>
+   =20
+    <div class=3D"footer">
+      <p>This is an automated alert from =
+your n8n workflow monitoring system.</p>
+      <p>Error Handler</p>
+    </div>
+  </div>
+</body>
+</html>
+					<br>
+					<br>
+					---
+					<br>
+					<em>This email was sent automatically with <a href=3D"https://n8n.io/?=
+utm_source=3Dn8n-internal&utm_medium=3Dpowered_by&utm_campaign=3Dn8n-nodes-=
+base.emailSend_b19df818dc6d5d93143869816ee7d272a575db9ee303f5834081147be1ff=
+09b8" target=3D"_blank">n8n</a></em>
+				=09

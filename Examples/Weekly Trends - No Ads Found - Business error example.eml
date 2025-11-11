@@ -1,0 +1,179 @@
+Return-Path: <ravramashvili@gmail.com>
+Received: from [127.0.0.1] ([77.137.76.233])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-475ddab5e0csm24422265e9.8.2025.10.25.15.21.40
+        for <ravramashvili@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 25 Oct 2025 15:21:41 -0700 (PDT)
+Content-Type: text/html; charset=utf-8
+From: ravramashvili@gmail.com
+To: ravramashvili@gmail.com
+Subject: Weekly Trends - No Ads Found
+Message-ID: <333e3098-4bdf-4fcb-20c0-84122be2a965@gmail.com>
+Content-Transfer-Encoding: quoted-printable
+Date: Sat, 25 Oct 2025 22:21:39 +0000
+MIME-Version: 1.0
+
+
+					<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, =
+sans-serif;
+      background-color: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px =
+4px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .header {
+      background: #f59e0b;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .content {
+      padding: 20px;
+      color: #1f2937;
+    }
+    .warning-box {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th {
+      background: #f3f4f6;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #374151;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+      color: #1f2937;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #6b7280;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class=3D"container">
+    <div class=3D"header">
+      <h1>Weekly Trends - No New Ads</h1>
+    </div>
+   =20
+    <div class=3D"content">
+      <p><strong>The weekly trends workflow =
+completed with no ads to process.</strong></p>
+     =20
+      <div class=3D"warning-box">
+        <strong>Notice:</strong> No ads =
+found in the last 7 days or all had errors
+      </div>
+
+      <table>
+        <tr>
+          <th>Detail</th>
+          <th>Value</th>
+        </tr>
+        <tr>
+          <td><strong>Run ID</strong></td>
+          <td>weekly-2025-10-25-810ec0a8</td>
+        </tr>
+        <tr>
+          <td><strong>Execution ID</strong></td>
+          <td>756</td>
+        </tr>
+        <tr>
+          <td><strong>Status</strong></td>
+          <td><span class=3D"badge">BUSINESS ERROR</span></td>
+        </tr>
+        <tr>
+          <td><strong>Reason</strong></td>
+          <td>No ads found in the last 7 days or all had errors</td>
+        </tr>
+        <tr>
+          <td><strong>Completed At</strong></td>
+          <td>10/25/2025, 10:21:39 PM</td>
+        </tr>
+      </table>
+
+      <p style=3D"color: #6b7280; font-size: 14px; margin-top: 20px;">
+        <strong>This is not a technical failure.</strong> The workflow =
+executed successfully but found no ads to analyze. This can happen when:
+      </p>
+      <ul style=3D"color: #6b7280; font-size: 14px;">
+        <li>No new ads were scraped in the last 7 days</li>
+        <li>All recent ads had analysis errors</li>
+        <li>The daily scraper hasn't run recently</li>
+      </ul>
+     =20
+      <p style=3D"text-align: center; margin-top: 24px;">
+        <a href=3D"http://localhost:5678/workflow/pcrXSKQul7KIrdZU/executio=
+ns/756"
+           style=3D"display:inline-block;
+                  =
+background-color:#f59e0b;
+                  color:#ffffff !important;
+                  font-weight:600;
+                  text-decoration:none;
+                  padding:12px 24px;
+                  border-radius:6px;
+                  font-family:Arial,Helvetica,sans-serif;
+                  text-align:center;">
+          View Execution in n8n
+        </a>
+      </p>
+    </div>
+   =20
+    <div class=3D"footer">
+      <p>This is an automated notification from your Ads Intelligence =
+system.</p>
+      <p><span class=3D"badge">Weekly Trends - Business =
+Error</span></p>
+    </div>
+  </div>
+</body>
+</html>
+					<br>
+					<br>
+					---
+					<br>
+					<em>This email was sent automatically with <a =
+href=3D"https://n8n.io/?utm_source=3Dn8n-internal&utm_medium=3Dpowered_by&u=
+tm_campaign=3Dn8n-nodes-base.emailSend_b19df818dc6d5d93143869816ee7d272a575=
+db9ee303f5834081147be1ff09b8" target=3D"_blank">n8n</a></em>
+				=09

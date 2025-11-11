@@ -1,0 +1,887 @@
+{
+  "name": "SUB Generate Guardio Ads",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "top_color_1"
+            },
+            {
+              "name": "top_color_2"
+            },
+            {
+              "name": "top_color_3"
+            },
+            {
+              "name": "top_characters"
+            },
+            {
+              "name": "top_objects"
+            },
+            {
+              "name": "run_id"
+            },
+            {
+              "name": "SPREADSHEET_ID"
+            },
+            {
+              "name": "week_start"
+            },
+            {
+              "name": "week_end"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -320,
+        400
+      ],
+      "id": "3fc74e5d-5077-40f3-923c-1557ac9b71a4",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "23f42c75-1826-423f-b43d-49a6c6470b0a",
+              "name": "DRIVE_FOLDER_ID",
+              "value": "YOUR_DRIVE_FOLDER_ID_HERE",
+              "type": "string"
+            },
+            {
+              "id": "9f6592ad-9455-4053-aa62-b0412bb53e26",
+              "name": "RATE_LIMIT_SEC",
+              "value": "15",
+              "type": "string"
+            },
+            {
+              "id": "9b0d1d1a-46b4-48d1-acd5-15f1427c3e39",
+              "name": "ai_model",
+              "value": "gpt-5-nano",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -96,
+        400
+      ],
+      "id": "fee8367a-e3c6-428e-b674-e7892fec432c",
+      "name": "Context Params"
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        704,
+        400
+      ],
+      "id": "75fbd05a-d1e6-4e7f-82b2-a05ac2d96bc7",
+      "name": "Loop Over Items",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "amount": "={{ $('Context Params').item.json.RATE_LIMIT_SEC }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        928,
+        400
+      ],
+      "id": "acdbdae4-d287-4615-8e38-6aacb7018de9",
+      "name": "Wait",
+      "webhookId": "db04cd33-d8ff-4efa-9238-e0efd986d950"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "huggingFaceApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "image/png"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "inputs",
+              "value": "={{ $json.prompt }}"
+            },
+            {
+              "name": "image_size",
+              "value": "300x250"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1152,
+        400
+      ],
+      "id": "da0372bf-2bb9-41b2-9514-d18093f22df4",
+      "name": "HTTP Request",
+      "retryOnFail": true,
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "N9TlXoM0It0YEbJg",
+          "name": "HuggingFaceApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "=guardio-ad-{{ $('Parse AI Prompts').item.json.run_id }}-v{{ $('Parse AI Prompts').item.json.variation }}.png",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "143OC7th0l2AEGo5ToGfXl0VO6rA0JQ7p",
+          "mode": "list",
+          "cachedResultName": "Guardio Generated Ads",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/143OC7th0l2AEGo5ToGfXl0VO6rA0JQ7p"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1376,
+        480
+      ],
+      "id": "2eae0f3c-fdee-429e-8ae6-c3758482e497",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "jrRweeWxnywty9xM",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const trigger = $('When Executed by Another Workflow').item.json;\nconst promptData = $('Parse AI Prompts').item.json;\nconst driveData = $input.item.json;\n\nreturn {\n  json: {\n    run_id: trigger.run_id || 'unknown',\n    week_start: trigger.week_start || null,\n    week_end: trigger.week_end || null,\n    variation: promptData.variation,\n    style: promptData.style || 'unknown',\n    prompt_text: promptData.prompt,\n    top_color_1: trigger.top_color_1,\n    top_color_2: trigger.top_color_2,\n    top_color_3: trigger.top_color_3,\n    top_characters: trigger.top_characters,\n    top_objects: trigger.top_objects,\n    file_name: driveData.name,\n    drive_file_id: driveData.id,\n    drive_url: driveData.webViewLink,\n    generated_at: driveData.createdTime,\n    ai_model: $('Context Params').item.json.ai_model\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        224
+      ],
+      "id": "c2d342e1-615e-43ef-88ac-6c887cba59b2",
+      "name": "Prepare Output"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('When Executed by Another Workflow').first().json.SPREADSHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1837638570,
+          "mode": "list",
+          "cachedResultName": "generated_ads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=1837638570"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "drive_file_id"
+          ],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "week_start",
+              "displayName": "week_start",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "week_end",
+              "displayName": "week_end",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "variation",
+              "displayName": "variation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "style",
+              "displayName": "style",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "prompt_text",
+              "displayName": "prompt_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "top_color_1",
+              "displayName": "top_color_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "top_color_2",
+              "displayName": "top_color_2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "top_color_3",
+              "displayName": "top_color_3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "top_characters",
+              "displayName": "top_characters",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "top_objects",
+              "displayName": "top_objects",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "file_name",
+              "displayName": "file_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "drive_file_id",
+              "displayName": "drive_file_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "drive_url",
+              "displayName": "drive_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "generated_at",
+              "displayName": "generated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ai_model",
+              "displayName": "ai_model",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1136,
+        224
+      ],
+      "id": "d0554d45-203b-4d82-a1de-b8fcab9e69a4",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate 3 advertisement image prompts for Guardio browser security using these weekly trends:\n\nTRENDING COLORS:\n- Primary: {{ $('When Executed by Another Workflow').item.json.top_color_1 }}\n- Secondary: {{ $('When Executed by Another Workflow').item.json.top_color_2 }}\n- Accent: {{ $('When Executed by Another Workflow').item.json.top_color_3 }}\n\nTRENDING CHARACTER STYLES:\n{{ $('When Executed by Another Workflow').item.json.top_characters }}\n\nTRENDING VISUAL ELEMENTS:\n{{ $('When Executed by Another Workflow').item.json.top_objects }}\n\nCREATIVE DIRECTION:\n- Variation 1: Professional/corporate style\n- Variation 2: Futuristic/tech-forward style  \n- Variation 3: Friendly/approachable style\n\nEach prompt must:\n✓ Be 300x250 banner format\n✓ Use the trending colors as dominant palette\n✓ Incorporate trending character styles\n✓ Include relevant trending objects/elements\n✓ Feature \"Guardio\" branding prominently\n✓ Include compelling tagline about browser security\n✓ Be detailed enough for Stable Diffusion to generate\n\nReturn as JSON array with 3 variations.\n",
+        "options": {
+          "systemMessage": "You are a professional advertisement copywriter and creative director specializing in cybersecurity marketing.\n\nYour task: Generate 3 unique, compelling image generation prompts for Guardio browser security ads.\n\nGUARDIO BACKGROUND:\n- Product: Browser security extension\n- Value proposition: Real-time protection from phishing, malware, and online scams\n- Target audience: Everyday internet users (non-technical)\n- Brand personality: Trustworthy, modern, accessible, protective\n\nREQUIREMENTS FOR EACH PROMPT:\n1. Must be optimized for AI image generation (Stable Diffusion)\n2. Banner ad format: 300x250 pixels, horizontal layout\n3. Must include Guardio branding and clear value proposition\n4. Use provided trending colors, characters, and objects\n5. Each variation should have distinct visual style (professional/tech/friendly)\n6. Include specific text overlays for brand and message\n\nOUTPUT FORMAT:\nReturn exactly 3 prompts as a JSON array:\n[\n  {\n    \"variation\": 1,\n    \"style\": \"professional\",\n    \"prompt\": \"detailed prompt here...\"\n  },\n  {\n    \"variation\": 2,\n    \"style\": \"tech\",\n    \"prompt\": \"detailed prompt here...\"\n  },\n  {\n    \"variation\": 3,\n    \"style\": \"friendly\",\n    \"prompt\": \"detailed prompt here...\"\n  }\n]\n\nCRITICAL: Return ONLY valid JSON, no additional text or explanation.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        128,
+        400
+      ],
+      "id": "06f4b4c7-0f76-4e36-a749-2006a4d36e4d",
+      "name": "AI Agent - Generate Prompts"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list",
+          "cachedResultName": "gpt-5-nano"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        624
+      ],
+      "id": "2c05525f-42e7-410e-93fd-18afa3c0ec0d",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Me70hFJ73OjF04LW",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiResponse = $input.first().json.output;\nconst trigger = $('When Executed by Another Workflow').first().json;\n\nlet prompts;\n\ntry {\n  // Try to parse JSON from AI response\n  const jsonMatch = aiResponse.match(/\\[[\\s\\S]*\\]/);\n  if (jsonMatch) {\n    prompts = JSON.parse(jsonMatch[0]);\n  } else {\n    prompts = JSON.parse(aiResponse);\n  }\n} catch (e) {\n  console.log('Failed to parse AI response:', e);\n  console.log('Raw response:', aiResponse);\n  \n  // Fallback to basic prompts if AI fails\n  prompts = [\n    {\n      variation: 1,\n      style: \"professional\",\n      prompt: `Professional 300x250 banner for Guardio security. Colors: ${trigger.top_color_1}, ${trigger.top_color_2}. Style: ${trigger.top_characters}. Text: \"Guardio - Browse Safely\"`\n    },\n    {\n      variation: 2,\n      style: \"tech\",\n      prompt: `Tech 300x250 banner for Guardio. Colors: ${trigger.top_color_1}, ${trigger.top_color_2}. Elements: ${trigger.top_objects}. Text: \"Guardio - Next-Gen Protection\"`\n    },\n    {\n      variation: 3,\n      style: \"friendly\",\n      prompt: `Friendly 300x250 banner for Guardio. Colors: ${trigger.top_color_1}. Style: welcoming. Text: \"Guardio - Your Digital Guardian\"`\n    }\n  ];\n}\n\nconsole.log('=== AI Generated Prompts ===');\nprompts.forEach((p, i) => {\n  console.log(`\\nVariation ${i + 1} (${p.style}):`);\n  console.log(p.prompt.substring(0, 100) + '...');\n});\n\n// Return properly formatted\nreturn prompts.map(p => ({\n  json: {\n    prompt: p.prompt,\n    variation: p.variation,\n    style: p.style,\n    run_id: $('When Executed by Another Workflow').first().json.run_id || 'unknown'\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        400
+      ],
+      "id": "1ef626a2-ecec-48a5-93da-f3f498c58ea9",
+      "name": "Parse AI Prompts"
+    },
+    {
+      "parameters": {
+        "content": "## SUB-WORKFLOW Generate Guardio Ads\n\nINPUT:\n- top_color_1, top_color_2, top_color_3\n- top_characters (string)\n- top_objects (string)\n- run_id\n- SPREADSHEET_ID\n- week_start / week_end\n\nOUTPUT:\n- 3 PNG files (300x250)\n- Uploaded to Google Drive\n- Logged in generated_ads sheet\n\nDURATION: ~3-5 minutes",
+        "height": 368,
+        "width": 416,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -704,
+        -112
+      ],
+      "typeVersion": 1,
+      "id": "6be59bab-4aa8-4dff-be84-d7ddddb8bfe9",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## CONTEXT PARAMS REQUIRED\nContext Params (Edit Fields node)\n\nREQUIRED VARIABLES:\n- DRIVE_FOLDER_ID - Drive folder ID (not in-use - TODO)\n- RATE_LIMIT_SEC - Delay between HTTP requests\n- ai_model - AI model used for prompt generation\n\nNOTE: Self-hosted n8n doesn't support \nenvironment variables, so we use Set nodes.",
+        "height": 256,
+        "width": 384,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -272,
+        -112
+      ],
+      "typeVersion": 1,
+      "id": "75d2524e-dc18-48e7-9e5e-b1b9f0a1586d",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## AI Prompt Generation\n\nMODEL: gpt-5-nano (Default)\n\nAGENT TASK:\n- Receives trending data\n- Generates 3 unique prompts\n- Variations: professional, tech, friendly\n\nOUTPUT:\n- JSON array with 3 detailed prompts\n- Each optimized for Stable Diffusion",
+        "height": 304,
+        "width": 352,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        128,
+        -112
+      ],
+      "typeVersion": 1,
+      "id": "e0d5bf6e-2aee-41cf-88c5-c0e47c0a874e",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Image Creation\n\nAPI: Hugging Face (FREE)\nMODEL: black-forest-labs/FLUX.1-schnell\n\nSPECS:\n- Size: 300x250 (banner format)\n- Rate limit: delay between requests\n\nWHY FREE API:\n- POC budget constraints\n- Quality acceptable for assignment",
+        "height": 320,
+        "width": 368,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        736,
+        688
+      ],
+      "typeVersion": 1,
+      "id": "615aafd4-75de-4381-9c4f-2f5dd04c4f65",
+      "name": "Sticky Note3"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "top_color_1": "#323232",
+          "top_color_2": "#4b4b4b",
+          "top_color_3": "#2b2b2b",
+          "top_characters": "outdoor, man, adult, business, old, vintage, portrait, smiling, student, professional",
+          "top_objects": "sky, landscape, book jacket, jacket, wrapping, covering, people, wall, sign, male",
+          "run_id": 555,
+          "SPREADSHEET_ID": "1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk",
+          "week_start": "2025-10-17T05:43:18.926Z",
+          "week_end": "2025-10-24T05:43:18.944Z"
+        }
+      }
+    ],
+    "AI Agent - Generate Prompts": [
+      {
+        "json": {
+          "output": "[\n  {\n    \"variation\": 1,\n    \"style\": \"professional\",\n    \"prompt\": \"300x250 banner, horizontal layout, dominant grayscale palette using primary #323232 for background, secondary #4b4b4b shapes and accent #2b2b2b. Left side features a smiling adult man in a tailored business suit inside a modern corporate lobby; a wall with subtle panels and a glass window reveals a calm blue sky landscape in the background. A semi transparent browser window hovers on the right with an address bar and a protective shield wrapped around it. A small sign on the wall reads Secure Browsing. Top left shows the Guardio branding as a bold wordmark with a small shield icon. Overlay text along the bottom edge reads GUARDIO and Real-time protection for your browser against phishing, malware and scams. The composition should feel trustworthy, professional and accessible with clear browser security messaging.\"\n  },\n  {\n    \"variation\": 2,\n    \"style\": \"tech\",\n    \"prompt\": \"300x250 banner, horizontal, futuristic tech-forward style with dominant grayscale palette #323232 #4b4b4b #2b2b2b and electric blue accents. A man in a sleek metallic jacket stands in a high tech lobby with holographic screens and a stylized city skyline visible through a glass wall. A glowing browser window with a digital shield wraps around it, and a digital URL bar shines. Guardio branding sits top left as a futuristic logo with a small shield emblem. Overlay text near bottom reads GUARDIO and Real-time protection from phishing, malware and online scams. The overall look is cutting edge, secure and accessible with a strong sense of motion and protection.\"\n  },\n  {\n    \"variation\": 3,\n    \"style\": \"friendly\",\n    \"prompt\": \"300x250 banner, horizontal, friendly approachable style using the same dominant grayscale palette but with warmer lighting. An outdoor scene shows a smiling adult man wearing a casual jacket in front of a park landscape under a bright sky. A sign on a wall communicates Guardio protection, and a soft wrapping graphic around a computer browser window hints at wraparound security. Guardio branding is clearly visible at the top right as a friendly wordmark. Overlay text at the bottom reads GUARDIO and Real-time protection for your browser against phishing, malware and scams. The tone should feel welcoming, simple and easy to use.\"\n  }\n]"
+        }
+      }
+    ],
+    "Append or update row in sheet": [
+      {
+        "json": {
+          "run_id": 555,
+          "week_start": "2025-10-17T05:43:18.926Z",
+          "week_end": "2025-10-24T05:43:18.944Z",
+          "variation": 1,
+          "style": "professional",
+          "prompt_text": "300x250 banner, horizontal layout, dominant grayscale palette using primary #323232 for background, secondary #4b4b4b shapes and accent #2b2b2b. Left side features a smiling adult man in a tailored business suit inside a modern corporate lobby; a wall with subtle panels and a glass window reveals a calm blue sky landscape in the background. A semi transparent browser window hovers on the right with an address bar and a protective shield wrapped around it. A small sign on the wall reads Secure Browsing. Top left shows the Guardio branding as a bold wordmark with a small shield icon. Overlay text along the bottom edge reads GUARDIO and Real-time protection for your browser against phishing, malware and scams. The composition should feel trustworthy, professional and accessible with clear browser security messaging.",
+          "top_color_1": "#323232",
+          "top_color_2": "#4b4b4b",
+          "top_color_3": "#2b2b2b",
+          "top_characters": "outdoor, man, adult, business, old, vintage, portrait, smiling, student, professional",
+          "top_objects": "sky, landscape, book jacket, jacket, wrapping, covering, people, wall, sign, male",
+          "file_name": "guardio-ad-555-v1.png",
+          "drive_file_id": "1UDDhpvyDU66s55TdhPWCU9yEZbbOmVRp",
+          "drive_url": "https://drive.google.com/file/d/1UDDhpvyDU66s55TdhPWCU9yEZbbOmVRp/view?usp=drivesdk",
+          "generated_at": "2025-10-25T22:12:46.208Z",
+          "ai_model": "gpt-5-nano"
+        }
+      },
+      {
+        "json": {
+          "run_id": 555,
+          "week_start": "2025-10-17T05:43:18.926Z",
+          "week_end": "2025-10-24T05:43:18.944Z",
+          "variation": 2,
+          "style": "tech",
+          "prompt_text": "300x250 banner, horizontal, futuristic tech-forward style with dominant grayscale palette #323232 #4b4b4b #2b2b2b and electric blue accents. A man in a sleek metallic jacket stands in a high tech lobby with holographic screens and a stylized city skyline visible through a glass wall. A glowing browser window with a digital shield wraps around it, and a digital URL bar shines. Guardio branding sits top left as a futuristic logo with a small shield emblem. Overlay text near bottom reads GUARDIO and Real-time protection from phishing, malware and online scams. The overall look is cutting edge, secure and accessible with a strong sense of motion and protection.",
+          "top_color_1": "#323232",
+          "top_color_2": "#4b4b4b",
+          "top_color_3": "#2b2b2b",
+          "top_characters": "outdoor, man, adult, business, old, vintage, portrait, smiling, student, professional",
+          "top_objects": "sky, landscape, book jacket, jacket, wrapping, covering, people, wall, sign, male",
+          "file_name": "guardio-ad-555-v2.png",
+          "drive_file_id": "1KI5-AVm93vn9a00_byqHx1iyt2y4bR3e",
+          "drive_url": "https://drive.google.com/file/d/1KI5-AVm93vn9a00_byqHx1iyt2y4bR3e/view?usp=drivesdk",
+          "generated_at": "2025-10-25T22:13:05.030Z",
+          "ai_model": "gpt-5-nano"
+        }
+      },
+      {
+        "json": {
+          "run_id": 555,
+          "week_start": "2025-10-17T05:43:18.926Z",
+          "week_end": "2025-10-24T05:43:18.944Z",
+          "variation": 3,
+          "style": "friendly",
+          "prompt_text": "300x250 banner, horizontal, friendly approachable style using the same dominant grayscale palette but with warmer lighting. An outdoor scene shows a smiling adult man wearing a casual jacket in front of a park landscape under a bright sky. A sign on a wall communicates Guardio protection, and a soft wrapping graphic around a computer browser window hints at wraparound security. Guardio branding is clearly visible at the top right as a friendly wordmark. Overlay text at the bottom reads GUARDIO and Real-time protection for your browser against phishing, malware and scams. The tone should feel welcoming, simple and easy to use.",
+          "top_color_1": "#323232",
+          "top_color_2": "#4b4b4b",
+          "top_color_3": "#2b2b2b",
+          "top_characters": "outdoor, man, adult, business, old, vintage, portrait, smiling, student, professional",
+          "top_objects": "sky, landscape, book jacket, jacket, wrapping, covering, people, wall, sign, male",
+          "file_name": "guardio-ad-555-v3.png",
+          "drive_file_id": "1Swx8-PIPFyZ3w_Z9WfGBiijbY7BVgdIz",
+          "drive_url": "https://drive.google.com/file/d/1Swx8-PIPFyZ3w_Z9WfGBiijbY7BVgdIz/view?usp=drivesdk",
+          "generated_at": "2025-10-25T22:13:23.990Z",
+          "ai_model": "gpt-5-nano"
+        }
+      }
+    ],
+    "Upload file": [
+      {
+        "json": {
+          "kind": "drive#file",
+          "id": "1Swx8-PIPFyZ3w_Z9WfGBiijbY7BVgdIz",
+          "name": "guardio-ad-555-v3.png",
+          "mimeType": "image/png",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "parents": [
+            "143OC7th0l2AEGo5ToGfXl0VO6rA0JQ7p"
+          ],
+          "spaces": [
+            "drive"
+          ],
+          "version": "2",
+          "webContentLink": "https://drive.google.com/uc?id=1Swx8-PIPFyZ3w_Z9WfGBiijbY7BVgdIz&export=download",
+          "webViewLink": "https://drive.google.com/file/d/1Swx8-PIPFyZ3w_Z9WfGBiijbY7BVgdIz/view?usp=drivesdk",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/image/png",
+          "hasThumbnail": true,
+          "thumbnailLink": "https://lh3.googleusercontent.com/drive-storage/AJQWtBOw_4Xr-UtEPmfgutGYB3vSeQHUsBfpwv-BtXWBb071H7ZDruArdFLb6l_ID-Ec1g6VRKQQnEi2OQMgiW4_eMJfMzb1Q9m34rRNYROCnULlugg=s220",
+          "thumbnailVersion": "1",
+          "viewedByMe": false,
+          "createdTime": "2025-10-25T22:13:23.990Z",
+          "modifiedTime": "2025-10-25T22:13:25.298Z",
+          "modifiedByMeTime": "2025-10-25T22:13:25.298Z",
+          "modifiedByMe": true,
+          "owners": [
+            {
+              "kind": "drive#user",
+              "displayName": "רפאל אברמשבילי",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocJxHXxIRZgANw0fDZ1OlwW7PvGaW4aNDen2RDMV2012lgQxTbilQg=s64",
+              "me": true,
+              "permissionId": "11589779304339069281",
+              "emailAddress": "ravramashvili@gmail.com"
+            }
+          ],
+          "lastModifyingUser": {
+            "kind": "drive#user",
+            "displayName": "רפאל אברמשבילי",
+            "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocJxHXxIRZgANw0fDZ1OlwW7PvGaW4aNDen2RDMV2012lgQxTbilQg=s64",
+            "me": true,
+            "permissionId": "11589779304339069281",
+            "emailAddress": "ravramashvili@gmail.com"
+          },
+          "shared": false,
+          "ownedByMe": true,
+          "downloadRestrictions": {
+            "itemDownloadRestriction": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            },
+            "effectiveDownloadRestrictionWithContext": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            }
+          },
+          "capabilities": {
+            "canAcceptOwnership": false,
+            "canAddChildren": false,
+            "canAddMyDriveParent": false,
+            "canChangeCopyRequiresWriterPermission": true,
+            "canChangeItemDownloadRestriction": true,
+            "canChangeSecurityUpdateEnabled": false,
+            "canChangeViewersCanCopyContent": true,
+            "canComment": true,
+            "canCopy": true,
+            "canDelete": true,
+            "canDisableInheritedPermissions": false,
+            "canDownload": true,
+            "canEdit": true,
+            "canEnableInheritedPermissions": true,
+            "canListChildren": false,
+            "canModifyContent": true,
+            "canModifyContentRestriction": true,
+            "canModifyEditorContentRestriction": true,
+            "canModifyOwnerContentRestriction": true,
+            "canModifyLabels": false,
+            "canMoveChildrenWithinDrive": false,
+            "canMoveItemIntoTeamDrive": true,
+            "canMoveItemOutOfDrive": true,
+            "canMoveItemWithinDrive": true,
+            "canReadLabels": false,
+            "canReadRevisions": true,
+            "canRemoveChildren": false,
+            "canRemoveContentRestriction": false,
+            "canRemoveMyDriveParent": true,
+            "canRename": true,
+            "canShare": true,
+            "canTrash": true,
+            "canUntrash": true
+          },
+          "viewersCanCopyContent": true,
+          "copyRequiresWriterPermission": false,
+          "writersCanShare": true,
+          "permissions": [
+            {
+              "kind": "drive#permission",
+              "id": "11589779304339069281",
+              "type": "user",
+              "emailAddress": "RAvramashvili@gmail.com",
+              "role": "owner",
+              "displayName": "RAvramashvili",
+              "deleted": false,
+              "pendingOwner": false
+            }
+          ],
+          "permissionIds": [
+            "11589779304339069281"
+          ],
+          "originalFilename": "guardio-ad-555-v3.png",
+          "fullFileExtension": "png",
+          "fileExtension": "png",
+          "md5Checksum": "0acedc5c2f1787e773d87b54967140ae",
+          "sha1Checksum": "fe22f8afd80e242b0169aab842b984b2d6e8111b",
+          "sha256Checksum": "921e63661b164ff94af1d77d8aa939ff8960a1cdc0e91189f706f663a33277c2",
+          "size": "1048739",
+          "quotaBytesUsed": "1048739",
+          "headRevisionId": "0B7PcTZv71PwKaE92MklPdkxPQjhFc3J2enFBanowRFFRM0Q0PQ",
+          "imageMediaMetadata": {
+            "width": 1024,
+            "height": 1024,
+            "rotation": 0
+          },
+          "isAppAuthorized": true,
+          "linkShareMetadata": {
+            "securityUpdateEligible": false,
+            "securityUpdateEnabled": true
+          },
+          "inheritedPermissionsDisabled": false
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Context Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Params": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Generate Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Prepare Output",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Output": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Generate Prompts": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Generate Prompts",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Prompts": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jerusalem",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "930a34ae-ffca-4df7-934b-8cb4c2425600",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b19df818dc6d5d93143869816ee7d272a575db9ee303f5834081147be1ff09b8"
+  },
+  "id": "dSkfEyqyBWyin2nW",
+  "tags": []
+}

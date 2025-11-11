@@ -1,0 +1,295 @@
+{
+  "name": "Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4e76d004-8871-46a5-86e2-3dd1049b7c85",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "fromEmail": "your-email@example.com",
+        "toEmail": "your-email@example.com",
+        "subject": "={{ $('Error Trigger').item.json.workflow.name }} Workflow Failed - Run {{ $('Error Trigger').item.json.execution.id }}",
+        "html": "=<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body {\n      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;\n      background-color: #f5f5f5;\n      padding: 20px;\n    }\n    .container {\n      max-width: 600px;\n      margin: 0 auto;\n      background: white;\n      border-radius: 8px;\n      box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n      overflow: hidden;\n    }\n    .header {\n      background: #dc2626;\n      color: white;\n      padding: 20px;\n      text-align: center;\n    }\n    .header h1 {\n      margin: 0;\n      font-size: 24px;\n    }\n    .content {\n      padding: 20px;\n    }\n    table {\n      width: 100%;\n      border-collapse: collapse;\n      margin: 20px 0;\n    }\n    th {\n      background: #f3f4f6;\n      padding: 12px;\n      text-align: left;\n      font-weight: 600;\n      color: #374151;\n      border-bottom: 2px solid #e5e7eb;\n    }\n    td {\n      padding: 12px;\n      border-bottom: 1px solid #e5e7eb;\n      color: #1f2937;\n    }\n    .error-box {\n      background: #fef2f2;\n      border-left: 4px solid #dc2626;\n      padding: 16px;\n      margin: 20px 0;\n      border-radius: 4px;\n    }\n    .error-box code {\n      display: block;\n      background: #fee2e2;\n      padding: 8px;\n      border-radius: 4px;\n      font-family: 'Courier New', monospace;\n      font-size: 13px;\n      word-break: break-word;\n      margin-top: 8px;\n    }\n    .footer {\n      text-align: center;\n      padding: 20px;\n      color: #6b7280;\n      font-size: 12px;\n    }\n    .badge {\n      display: inline-block;\n      padding: 4px 12px;\n      border-radius: 12px;\n      font-size: 12px;\n      font-weight: 600;\n    }\n    .badge-failure {\n      background: #fee2e2;\n      color: #991b1b;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Workflow Execution Failed</h1>\n    </div>\n    \n    <div class=\"content\">\n      <p><strong>A workflow execution has failed and requires attention.</strong></p>\n      \n      <table>\n        <tr>\n          <th>Field</th>\n          <th>Value</th>\n        </tr>\n        <tr>\n          <td><strong>Run ID</strong></td>\n          <td>{{ $('Error Trigger').item.json.execution.id }}</td>\n        </tr>\n        <tr>\n          <td><strong>Timestamp</strong></td>\n          <td>{{ $now }}</td>\n        </tr>\n        <tr>\n          <td><strong>Workflow Type</strong></td>\n          <td><span class=\"badge badge-failure\">{{ $('Error Trigger').item.json.workflow.name }}</span></td>\n        </tr>\n        <tr>\n          <td><strong>Status</strong></td>\n          <td><span class=\"badge badge-failure\">{{ $json.status.toUpperCase() }}</span></td>\n        </tr>\n      </table>\n      \n      <div class=\"error-box\">\n        <strong>Error Message:</strong>\n        <code>{{ $json.error_message }}</code>\n      </div>\n      \n        <p style=\"text-align: center; margin-top: 24px;\">\n          <a href=\"{{ $('Error Trigger').item.json.execution.url }}\" \n             style=\"display: inline-block; background: #3b82f6; color: white; \n                    padding: 12px 24px; text-decoration: none; border-radius: 6px;\n                    font-weight: 600;\">\n            View Execution Details\n          </a>\n        </p>\n    </div>\n    \n    <div class=\"footer\">\n      <p>This is an automated alert from your n8n workflow monitoring system.</p>\n      <p>Error Handler</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "a4daf7cc-40f8-46ab-97e9-b0cd22e68565",
+      "name": "Send failure email",
+      "webhookId": "03198678-347e-42b4-89bf-0a475e7a8c15",
+      "credentials": {
+        "smtp": {
+          "id": "Q34Pkt8Iza224nM6",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Global Error Handler\n\nTRIGGERS ON:\n- Any workflow failure\n- Catches all unhandled errors\n\nACTIONS:\n1. Find run_id from execution_logs\n2. Update status → \"failed\"\n3. Log error_message\n4. Send failure email (red theme)\n\nCONNECTED TO: All MAIN workflows",
+        "height": 336,
+        "width": 400,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -192,
+        -416
+      ],
+      "typeVersion": 1,
+      "id": "9e847899-0653-41c2-997d-2dfc00eec5f9",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## TODO\n- Make 'Update run to failure' dynamic\n- For now - set 'Update run to failure' node to your SPREADSHEET_ID",
+        "height": 240,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        224,
+        -416
+      ],
+      "typeVersion": 1,
+      "id": "bec7ee10-2755-4b28-97e4-9b46b3369e6a",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1911291529,
+          "mode": "list",
+          "cachedResultName": "execution_logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NYIFo3nbs1nsogoClgmNRnscijfNvb648KhVAHPGhlk/edit#gid=1911291529"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "=",
+            "status": "failure",
+            "error_message": "={{ $json.execution.error.message }}",
+            "execution_url": "={{ $json.execution.url }}",
+            "updated_at": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "execution_url"
+          ],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_url",
+              "displayName": "execution_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "run_type",
+              "displayName": "run_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "started_at",
+              "displayName": "started_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "completed_at",
+              "displayName": "completed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "step_name",
+              "displayName": "step_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "688be395-e673-4b4a-8991-28dfc1fa68c7",
+      "name": "Update run to failure",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hi8TUZpKqrnRtS18",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Error Trigger": [
+      {
+        "json": {
+          "execution": {
+            "id": "733",
+            "url": "http://localhost:5678/workflow/pcrXSKQul7KIrdZU/executions/733",
+            "error": {
+              "level": "error",
+              "tags": {},
+              "node": {
+                "parameters": {
+                  "mode": "runOnceForAllItems",
+                  "language": "python",
+                  "pythonCode": "# Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor item in _input.all():\n  item.json.myNewField = 1/0\nreturn _input.all()",
+                  "notice": ""
+                },
+                "type": "n8n-nodes-base.code",
+                "typeVersion": 2,
+                "position": [
+                  -32,
+                  -64
+                ],
+                "id": "e9eb46e2-0057-45ae-ae95-e3da1815b76b",
+                "name": "Code in Python (Beta)"
+              },
+              "message": "ZeroDivisionError: division by zero\n",
+              "stack": "Error: ZeroDivisionError: division by zero\n\n    at PythonSandbox.getPrettyError (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-nodes-base@file+packages+nodes-base_@aws-sdk+credential-providers@3.808.0_asn1.js@5_afd197edb2c1f848eae21a96a97fab23/node_modules/n8n-nodes-base/nodes/Code/PythonSandbox.ts:101:11)\n    at PythonSandbox.runCodeInPython (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-nodes-base@file+packages+nodes-base_@aws-sdk+credential-providers@3.808.0_asn1.js@5_afd197edb2c1f848eae21a96a97fab23/node_modules/n8n-nodes-base/nodes/Code/PythonSandbox.ts:85:15)\n    at PythonSandbox.runCodeAllItems (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-nodes-base@file+packages+nodes-base_@aws-sdk+credential-providers@3.808.0_asn1.js@5_afd197edb2c1f848eae21a96a97fab23/node_modules/n8n-nodes-base/nodes/Code/PythonSandbox.ts:46:27)\n    at ExecuteContext.execute (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-nodes-base@file+packages+nodes-base_@aws-sdk+credential-providers@3.808.0_asn1.js@5_afd197edb2c1f848eae21a96a97fab23/node_modules/n8n-nodes-base/nodes/Code/Code.node.ts:198:14)\n    at WorkflowExecute.executeNode (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1254:8)\n    at WorkflowExecute.runNode (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1428:11)\n    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1761:27\n    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:2338:11"
+            },
+            "lastNodeExecuted": "Code in Python (Beta)",
+            "mode": "trigger"
+          },
+          "workflow": {
+            "id": "pcrXSKQul7KIrdZU",
+            "name": "MAIN Weekly Trends"
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Update run to failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update run to failure": {
+      "main": [
+        [
+          {
+            "node": "Send failure email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jerusalem",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "4f3cb3d1-5b66-478b-8b9f-5dc021b971bf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b19df818dc6d5d93143869816ee7d272a575db9ee303f5834081147be1ff09b8"
+  },
+  "id": "a53bGjmYCia6srmV",
+  "tags": []
+}
